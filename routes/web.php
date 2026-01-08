@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\AttendanceController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -39,12 +41,19 @@ require __DIR__.'/auth.php';
 | ADMIN DASHBOARD
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'admin'])->group(function () {
+// Admin routes with auth middleware
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
 
-    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])
-        ->name('admin.dashboard');
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])
+        ->name('dashboard');
 
-    Route::post('/admin/simulate-rfid', [AdminController::class, 'simulateRFID'])
-        ->name('simulate.rfid');
+    Route::get('/students', [AdminController::class, 'students'])
+        ->name('students');
 
+    Route::get('/attendance', [AdminController::class, 'attendance'])
+        ->name('attendance');
+
+    // Simulate RFID tap (for prototype)
+    Route::post('/rfid/simulate', [AdminController::class, 'simulateRFID'])
+        ->name('rfid.simulate');
 });

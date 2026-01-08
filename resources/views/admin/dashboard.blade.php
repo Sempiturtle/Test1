@@ -1,58 +1,62 @@
-<x-app-layout>
-    <div class="p-6">
+@extends('layouts.admin')
 
-        <h1 class="text-2xl font-bold mb-4">
-            Admin Dashboard – RFID Attendance
-        </h1>
+@section('title', 'Dashboard')
 
-        @if (session('success'))
-            <p class="text-green-600">{{ session('success') }}</p>
-        @endif
+@section('content')
 
-        @if (session('error'))
-            <p class="text-red-600">{{ session('error') }}</p>
-        @endif
+{{-- STAT CARDS --}}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 
-        <div class="grid grid-cols-2 gap-4 my-6">
-            <div class="p-4 bg-white shadow rounded">
-                <p>Total Students</p>
-                <h2 class="text-3xl">{{ $totalStudents }}</h2>
-            </div>
-
-            <div class="p-4 bg-white shadow rounded">
-                <p>Attendance Today</p>
-                <h2 class="text-3xl">{{ $attendanceToday }}</h2>
-            </div>
-        </div>
-
-        <form method="POST" action="{{ route('simulate.rfid') }}" class="mb-6">
-            @csrf
-            <input type="text" name="rfid_uid" placeholder="Scan RFID UID" class="border p-2" required>
-            <button class="bg-blue-600 text-white px-4 py-2">
-                Simulate RFID Tap
-            </button>
-        </form>
-
-        <table class="w-full border">
-            <thead>
-                <tr class="bg-gray-200">
-                    <th class="border p-2">Student Name</th>
-                    <th class="border p-2">RFID UID</th>
-                    <th class="border p-2">Session</th>
-                    <th class="border p-2">Time In</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($attendanceLogs as $log)
-                    <tr>
-                        <td class="border p-2">{{ $log->student->name }}</td>
-                        <td class="border p-2">{{ $log->rfid_uid }}</td>
-                        <td class="border p-2">{{ $log->session }}</td>
-                        <td class="border p-2">{{ $log->time_in }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-
+    <div class="bg-white p-6 rounded-xl shadow">
+        <p class="text-gray-500">Total Students</p>
+        <h2 class="text-3xl font-bold">{{ $totalStudents }}</h2>
     </div>
-</x-app-layout>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+        <p class="text-gray-500">Attendance Today</p>
+        <h2 class="text-3xl font-bold">{{ $attendanceToday }}</h2>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+        <p class="text-gray-500">System Status</p>
+        <span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full">
+            Active
+        </span>
+    </div>
+
+</div>
+
+{{-- CHARTS --}}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <div class="bg-white p-6 rounded-xl shadow">
+        <h3 class="font-semibold mb-4">Weekly Attendance</h3>
+        <div id="weeklyChart"></div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+        <h3 class="font-semibold mb-4">Students Per Course</h3>
+        <div id="courseChart"></div>
+    </div>
+
+</div>
+
+@endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+    new ApexCharts(document.querySelector("#weeklyChart"), {
+        chart: { type: 'line', height: 300 },
+        series: [{ name: 'Attendance', data: @json($weeklyAttendance->pluck('total')) }],
+        xaxis: { categories: @json($weeklyAttendance->pluck('date')) }
+    }).render();
+
+    new ApexCharts(document.querySelector("#courseChart"), {
+        chart: { type: 'donut', height: 300 },
+        series: @json($studentsPerCourse->pluck('total')),
+        labels: @json($studentsPerCourse->pluck('course'))
+    }).render();
+</script>
+@endpush
