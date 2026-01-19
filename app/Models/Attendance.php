@@ -10,7 +10,8 @@ class Attendance extends Model
         'student_id',
         'rfid_uid',
         'session',
-        'time_in'
+        'time_in',
+        'time_out'
     ];
 
     public function student()

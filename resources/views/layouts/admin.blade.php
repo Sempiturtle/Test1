@@ -1,41 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>@yield('title') | RFID System</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <title>@yield('title', 'Admin Dashboard')</title>
+    @vite('resources/css/app.css')
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 
-<body class="bg-gray-100 font-sans">
+<body class="flex bg-gray-900 text-white min-h-screen">
 
-<div class="flex min-h-screen">
-
-    {{-- SIDEBAR --}}
-    <aside class="w-64 bg-indigo-700 text-white flex flex-col">
-        <div class="p-6 text-xl font-bold border-b border-indigo-600">RFID System</div>
-        <nav class="flex-1 p-4 space-y-2">
-            <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 rounded hover:bg-indigo-600">Dashboard</a>
-            <a href="{{ route('admin.students') }}" class="block px-4 py-2 rounded hover:bg-indigo-600">Students</a>
-            <a href="{{ route('admin.attendance') }}" class="block px-4 py-2 rounded hover:bg-indigo-600">Attendance</a>
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-black/50 backdrop-blur border-r border-white/10 p-6 flex flex-col">
+        <h2 class="text-2xl font-bold text-indigo-400 mb-6">RFID Admin</h2>
+        <nav class="flex flex-col space-y-2">
+            <a href="{{ route('admin.dashboard') }}"
+                class="px-4 py-2 rounded hover:bg-indigo-500/20 transition">Dashboard</a>
+            <a href="{{ route('admin.students.index') }}"
+                class="px-4 py-2 rounded hover:bg-indigo-500/20 transition">Students</a>
+            <a href="{{ route('admin.attendance.logs') }}"
+                class="px-4 py-2 rounded hover:bg-indigo-500/20 transition">Attendance Logs</a>
+            <form method="POST" action="/logout">
+                @csrf
+                <button class="px-4 py-2 rounded hover:bg-red-500/20 w-full mt-4">Logout</button>
+            </form>
         </nav>
-        <form method="POST" action="{{ route('logout') }}" class="p-4 border-t border-indigo-600">
-            @csrf
-            <button class="w-full bg-red-500 hover:bg-red-600 py-2 rounded">Logout</button>
-        </form>
     </aside>
 
-    {{-- MAIN --}}
-    <main class="flex-1 p-8">
-        <h1 class="text-2xl font-bold mb-6">@yield('title')</h1>
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-8 overflow-auto">
         @yield('content')
     </main>
 
-</div>
+    <!-- HIDDEN RFID FORM -->
+    <form id="rfidForm" method="POST" action="{{ route('admin.rfid.tap') }}">
+        @csrf
+        <input id="rfidInput" name="rfid_uid" class="hidden">
+    </form>
 
-{{-- Scripts --}}
-@stack('scripts')
+    <script>
+        let buffer = '';
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                document.getElementById('rfidInput').value = buffer;
+                document.getElementById('rfidForm').submit();
+                buffer = '';
+            } else {
+                buffer += e.key;
+            }
+        });
+    </script>
 
+    @stack('scripts')
 </body>
+
 </html>

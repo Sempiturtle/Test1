@@ -6,13 +6,19 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\AttendanceController;
 
+/*
+|--------------------------------------------------------------------------
+| PUBLIC ROUTES
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/', function () {
     return view('welcome');
 });
 
 /*
 |--------------------------------------------------------------------------
-| USER DASHBOARD (DEFAULT)
+| USER DASHBOARD
 |--------------------------------------------------------------------------
 */
 Route::get('/dashboard', function () {
@@ -21,11 +27,11 @@ Route::get('/dashboard', function () {
     }
 
     abort(403);
-})->middleware(['auth'])->name('dashboard');
+})->middleware('auth')->name('dashboard');
 
 /*
 |--------------------------------------------------------------------------
-| PROFILE
+| PROFILE ROUTES
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
@@ -34,26 +40,49 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 /*
 |--------------------------------------------------------------------------
-| ADMIN DASHBOARD
+| ADMIN ROUTES
 |--------------------------------------------------------------------------
 */
-// Admin routes with auth middleware
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
 
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])
-        ->name('dashboard');
+        /* =====================
+         * DASHBOARD
+         * ===================== */
+        Route::get('/dashboard', [AdminController::class, 'dashboard'])
+            ->name('dashboard');
 
-    Route::get('/students', [AdminController::class, 'students'])
-        ->name('students');
+        /* =====================
+         * RFID TAP (USB / Hidden Input)
+         * ===================== */
+        Route::post('/rfid/tap', [AdminController::class, 'rfidTap'])
+            ->name('rfid.tap');
 
-    Route::get('/attendance', [AdminController::class, 'attendance'])
-        ->name('attendance');
+        /* =====================
+         * STUDENTS
+         * ===================== */
+        Route::get('/students', [StudentController::class, 'index'])
+            ->name('students.index');
 
-    // Simulate RFID tap (for prototype)
-    Route::post('/rfid/simulate', [AdminController::class, 'simulateRFID'])
-        ->name('rfid.simulate');
-});
+        Route::post('/students', [StudentController::class, 'store'])
+            ->name('students.store');
+
+        /* =====================
+         * ATTENDANCE
+         * ===================== */
+        Route::get('/attendance/logs', [AttendanceController::class, 'index'])
+            ->name('attendance.logs');
+
+        Route::post('/attendance/simulate', [AttendanceController::class, 'simulate'])
+            ->name('attendance.simulate');
+
+        // 🔴 THIS WAS MISSING (AJAX live updates)
+        Route::get('/attendance/latest-logs', [AttendanceController::class, 'latestLogs'])
+            ->name('attendance.latestLogs');
+    });

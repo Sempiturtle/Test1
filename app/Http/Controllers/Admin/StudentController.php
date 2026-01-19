@@ -1,20 +1,17 @@
 <?php
 
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Student;
+use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $students = Student::when($request->search, function ($q) use ($request) {
-            $q->where('name', 'like', "%{$request->search}%")
-              ->orWhere('rfid_uid', 'like', "%{$request->search}%");
-        })->get();
-
+        $students = Student::all();
         return view('admin.students', compact('students'));
     }
 

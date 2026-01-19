@@ -3,73 +3,81 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Student;
 use App\Models\Attendance;
-use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
-    // Dashboard
     public function dashboard()
     {
         $totalStudents = Student::count();
-        $attendanceToday = Attendance::whereDate('created_at', today())->count();
 
-        // Last 7 days attendance
-        $weeklyAttendance = Attendance::selectRaw('DATE(created_at) as date, COUNT(*) as total')
+        // Attendance today = students who have tapped at least once
+        $attendanceToday = Attendance::whereDate('created_at', now())->count();
+
+        // Last 7 days attendance for line chart
+        $attendancePerDay = Attendance::select(
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('COUNT(*) as total')
+        )
             ->where('created_at', '>=', now()->subDays(6))
-            ->groupBy('date')
+            ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy('date')
             ->get();
 
-        // Students per course
-        $studentsPerCourse = Student::selectRaw('course, COUNT(*) as total')
-            ->groupBy('course')
-            ->get();
+        // Donut chart: Present vs Absent
+        $presentToday = $attendanceToday;
+        $absentToday = max(0, $totalStudents - $attendanceToday);
+
+        // Recent logs (last 10)
+        $recentAttendances = Attendance::with('student')->latest()->take(10)->get();
 
         return view('admin.dashboard', compact(
             'totalStudents',
             'attendanceToday',
-            'weeklyAttendance',
-            'studentsPerCourse'
+            'attendancePerDay',
+            'presentToday',
+            'absentToday',
+            'recentAttendances'
         ));
     }
 
-    // Students Page
-    public function students()
+    public function rfidTap(Request $request)
     {
-        $students = Student::latest()->get();
-        return view('admin.students', compact('students'));
-    }
-
-    // Attendance Page
-    public function attendance()
-    {
-        $logs = Attendance::with('student')->latest()->get();
-        return view('admin.attendance', compact('logs'));
-    }
-
-    // Simulate RFID Tap
-    public function simulateRFID(Request $request)
-    {
-        $request->validate([
-            'rfid_uid' => 'required'
-        ]);
-
-        $student = Student::where('rfid_uid', $request->rfid_uid)->first();
+        $uid = trim($request->rfid_uid);
+        $student = Student::where('rfid_uid', $uid)->first();
 
         if (!$student) {
-            return back()->with('error', 'RFID not found!');
+            return back()->with('error', 'RFID not registered');
         }
 
-        Attendance::create([
-            'student_id' => $student->id,
-            'rfid_uid' => $student->rfid_uid,
-            'session' => 'Peer Counseling',
-            'time_in' => now()
-        ]);
+        // Find today's attendance
+        $attendance = Attendance::where('student_id', $student->id)
+            ->whereDate('created_at', now())
+            ->first();
 
-        return back()->with('success', 'Attendance recorded for '.$student->name);
+        if (!$attendance) {
+            // First tap → Time In
+            Attendance::create([
+                'student_id' => $student->id,
+                'rfid_uid' => $student->rfid_uid,
+                'session' => 'Peer Counseling',
+                'time_in' => now()
+            ]);
+
+            return back()->with('success', 'Time In recorded: ' . $student->name);
+        }
+
+        if ($attendance->time_out) {
+            return back()->with('error', 'Attendance already completed today');
+        }
+
+        // Second tap → Time Out
+        $attendance->time_out = now();
+        $attendance->save();
+
+        return back()->with('success', 'Time Out recorded: ' . $student->name);
     }
 }
