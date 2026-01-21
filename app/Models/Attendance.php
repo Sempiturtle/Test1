@@ -11,8 +11,14 @@ class Attendance extends Model
         'rfid_uid',
         'session',
         'time_in',
-        'time_out'
+        'time_out',
+        'duration_minutes',
     ];
+
+    protected $casts = [
+        'time_in' => 'datetime',
+        'time_out' => 'datetime',
+    ];  
 
     public function student()
     {

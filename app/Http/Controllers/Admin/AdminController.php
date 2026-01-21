@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AdminController extends Controller
 {
@@ -46,38 +47,49 @@ class AdminController extends Controller
 
     public function rfidTap(Request $request)
     {
-        $uid = trim($request->rfid_uid);
-        $student = Student::where('rfid_uid', $uid)->first();
+        $uid = $request->rfid_uid;
 
+        $student = Student::where('rfid_uid', $uid)->first();
         if (!$student) {
-            return back()->with('error', 'RFID not registered');
+            return response()->json(['status' => 'error', 'message' => 'Student not found']);
         }
 
-        // Find today's attendance
+        // Check today's attendance
         $attendance = Attendance::where('student_id', $student->id)
-            ->whereDate('created_at', now())
+            ->whereDate('created_at', Carbon::today())
             ->first();
 
         if (!$attendance) {
-            // First tap → Time In
+            // No record yet → Time In
             Attendance::create([
                 'student_id' => $student->id,
-                'rfid_uid' => $student->rfid_uid,
-                'session' => 'Peer Counseling',
-                'time_in' => now()
+                'rfid_uid' => $uid,
+                'time_in' => now(),
             ]);
 
-            return back()->with('success', 'Time In recorded: ' . $student->name);
+            return response()->json(['status' => 'success', 'message' => 'Time In recorded']);
         }
 
-        if ($attendance->time_out) {
-            return back()->with('error', 'Attendance already completed today');
+        if (!$attendance->time_out) {
+            // Time Out
+            $timeOut = now();
+            $duration = $attendance->time_in->diffInMinutes($timeOut);
+
+            $attendance->update([
+                'time_out' => $timeOut,
+                'duration_minutes' => $duration,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Time Out recorded (' . $duration . ' mins)'
+            ]);
         }
 
-        // Second tap → Time Out
-        $attendance->time_out = now();
-        $attendance->save();
-
-        return back()->with('success', 'Time Out recorded: ' . $student->name);
+        // Already clocked in and out
+        return response()->json([
+            'status' => 'info',
+            'message' => 'You have already completed your attendance for today'
+        ]);
     }
 }

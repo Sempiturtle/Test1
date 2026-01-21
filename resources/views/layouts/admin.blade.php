@@ -8,21 +8,21 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 
-<body class="flex bg-gray-900 text-white min-h-screen">
+<body class="flex bg-gray-100 text-gray-900 min-h-screen font-sans">
 
     <!-- SIDEBAR -->
-    <aside class="w-64 bg-black/50 backdrop-blur border-r border-white/10 p-6 flex flex-col">
-        <h2 class="text-2xl font-bold text-indigo-400 mb-6">RFID Admin</h2>
+    <aside class="w-64 bg-indigo-50 shadow-lg p-6 flex flex-col">
+        <h2 class="text-2xl font-bold text-indigo-700 mb-6">Aisat Counseling</h2>
         <nav class="flex flex-col space-y-2">
             <a href="{{ route('admin.dashboard') }}"
-                class="px-4 py-2 rounded hover:bg-indigo-500/20 transition">Dashboard</a>
+                class="px-4 py-2 rounded hover:bg-indigo-200 transition">Dashboard</a>
             <a href="{{ route('admin.students.index') }}"
-                class="px-4 py-2 rounded hover:bg-indigo-500/20 transition">Students</a>
+                class="px-4 py-2 rounded hover:bg-indigo-200 transition">Students</a>
             <a href="{{ route('admin.attendance.logs') }}"
-                class="px-4 py-2 rounded hover:bg-indigo-500/20 transition">Attendance Logs</a>
+                class="px-4 py-2 rounded hover:bg-indigo-200 transition">Attendance Logs</a>
             <form method="POST" action="/logout">
                 @csrf
-                <button class="px-4 py-2 rounded hover:bg-red-500/20 w-full mt-4">Logout</button>
+                <button class="px-4 py-2 rounded hover:bg-red-200 w-full mt-4">Logout</button>
             </form>
         </nav>
     </aside>
@@ -38,6 +38,7 @@
         <input id="rfidInput" name="rfid_uid" class="hidden">
     </form>
 
+    <!-- USB RFID listener -->
     <script>
         let buffer = '';
         document.addEventListener('keydown', e => {
