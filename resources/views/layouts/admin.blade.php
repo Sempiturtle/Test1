@@ -29,11 +29,22 @@
 
     <!-- MAIN CONTENT -->
     <main class="flex-1 p-8 overflow-auto">
+        <!-- Flash Messages -->
+        @if (session('success'))
+            <p class="text-green-600 mb-4">{{ session('success') }}</p>
+        @endif
+        @if (session('error'))
+            <p class="text-red-600 mb-4">{{ session('error') }}</p>
+        @endif
+        @if (session('info'))
+            <p class="text-yellow-600 mb-4">{{ session('info') }}</p>
+        @endif
+
         @yield('content')
     </main>
 
     <!-- HIDDEN RFID FORM -->
-    <form id="rfidForm" method="POST" action="{{ route('admin.rfid.tap') }}">
+    <form id="rfidForm" method="POST" action="{{ route('admin.attendance.simulate') }}">
         @csrf
         <input id="rfidInput" name="rfid_uid" class="hidden">
     </form>

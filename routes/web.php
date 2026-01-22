@@ -25,9 +25,8 @@ Route::get('/dashboard', function () {
     if (auth()->user()->role === 'admin') {
         return redirect()->route('admin.dashboard');
     }
-
     abort(403);
-})->middleware('auth')->name('dashboard');
+})->middleware(['auth'])->name('dashboard');
 
 /*
 |--------------------------------------------------------------------------
@@ -47,42 +46,19 @@ require __DIR__ . '/auth.php';
 | ADMIN ROUTES
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'admin'])
-    ->prefix('admin')
-    ->name('admin.')
-    ->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
 
-        /* =====================
-         * DASHBOARD
-         * ===================== */
-        Route::get('/dashboard', [AdminController::class, 'dashboard'])
-            ->name('dashboard');
+    // Dashboard
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
-        /* =====================
-         * RFID TAP (USB / Hidden Input)
-         * ===================== */
-        Route::post('/rfid/tap', [AdminController::class, 'rfidTap'])
-            ->name('rfid.tap');
+    // RFID Tap (real-time)
+    Route::post('/attendance/simulate', [AttendanceController::class, 'simulate'])->name('attendance.simulate');
 
-        /* =====================
-         * STUDENTS
-         * ===================== */
-        Route::get('/students', [StudentController::class, 'index'])
-            ->name('students.index');
+    // Students
+    Route::get('/students', [StudentController::class, 'index'])->name('students.index');
+    Route::post('/students', [StudentController::class, 'store'])->name('students.store');
 
-        Route::post('/students', [StudentController::class, 'store'])
-            ->name('students.store');
-
-        /* =====================
-         * ATTENDANCE
-         * ===================== */
-        Route::get('/attendance/logs', [AttendanceController::class, 'index'])
-            ->name('attendance.logs');
-
-        Route::post('/attendance/simulate', [AttendanceController::class, 'simulate'])
-            ->name('attendance.simulate');
-
-        // 🔴 THIS WAS MISSING (AJAX live updates)
-        Route::get('/attendance/latest-logs', [AttendanceController::class, 'latestLogs'])
-            ->name('attendance.latestLogs');
-    });
+    // Attendance Logs
+    Route::get('/attendance/logs', [AttendanceController::class, 'index'])->name('attendance.logs');
+    Route::get('/attendance/latest-logs', [AttendanceController::class, 'latestLogs'])->name('attendance.latestLogs');
+});
