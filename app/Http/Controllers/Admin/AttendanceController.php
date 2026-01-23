@@ -20,68 +20,60 @@ class AttendanceController extends Controller
 
     // Handle RFID tap
     public function simulate(Request $request)
-    {
-        $rfid = $request->rfid_uid;
-        $student = Student::where('rfid_uid', $rfid)->first();
+{
+    $request->validate([
+        'rfid_uid' => 'required'
+    ]);
 
-        if (!$student) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'RFID not registered'
-            ]);
-        }
+    $student = Student::where('rfid_uid', $request->rfid_uid)->first();
 
-        $today = Carbon::today();
-
-        // Look for today's attendance
-        $attendance = Attendance::where('student_id', $student->id)
-            ->whereDate('time_in', $today)
-            ->latest()
-            ->first();
-
-        // Prevent rapid double tap
-        if ($attendance && $attendance->updated_at->diffInSeconds(now()) < 5) {
-            return response()->json([
-                'status' => 'info',
-                'message' => 'Please wait a few seconds before tapping again.'
-            ]);
-        }
-
-        if (!$attendance) {
-            // First tap → TIME IN
-            $attendance = Attendance::create([
-                'student_id' => $student->id,
-                'rfid_uid' => $rfid,
-                'time_in' => now(),
-            ]);
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Time In recorded',
-                'attendance' => $this->attendanceResponse($attendance, $student)
-            ]);
-        }
-
-        if ($attendance && !$attendance->time_out) {
-            // Second tap → TIME OUT
-            $attendance->update([
-                'time_out' => now(),
-                'duration_minutes' => $attendance->time_in->diffInMinutes(now())
-            ]);
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Time Out recorded',
-                'attendance' => $this->attendanceResponse($attendance, $student)
-            ]);
-        }
-
-        // Already completed
+    if (!$student) {
         return response()->json([
-            'status' => 'info',
-            'message' => 'Attendance already completed today'
+            'status' => 'error',
+            'message' => 'RFID not registered'
         ]);
     }
+
+    $today = now()->toDateString();
+
+    $attendance = Attendance::where('student_id', $student->id)
+        ->whereDate('time_in', $today)
+        ->latest()
+        ->first();
+
+    if (!$attendance) {
+        $attendance = Attendance::create([
+            'student_id' => $student->id,
+            'rfid_uid' => $request->rfid_uid,
+            'time_in' => now()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Time In recorded',
+            'attendance' => $this->attendanceResponse($attendance, $student)
+        ]);
+    }
+
+    if (!$attendance->time_out) {
+        $attendance->update([
+            'time_out' => now(),
+            'duration_minutes' => $attendance->time_in->diffInMinutes(now())
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Time Out recorded',
+            'attendance' => $this->attendanceResponse($attendance, $student)
+        ]);
+    }
+
+    return response()->json([
+        'status' => 'info',
+        'message' => 'Attendance already completed today'
+    ]);
+}
+
 
     private function attendanceResponse($attendance, $student)
     {

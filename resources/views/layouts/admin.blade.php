@@ -43,27 +43,7 @@
         @yield('content')
     </main>
 
-    <!-- HIDDEN RFID FORM -->
-    <form id="rfidForm" method="POST" action="{{ route('admin.attendance.simulate') }}">
-        @csrf
-        <input id="rfidInput" name="rfid_uid" class="hidden">
-    </form>
 
-    <!-- USB RFID listener -->
-    <script>
-        let buffer = '';
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Enter') {
-                document.getElementById('rfidInput').value = buffer;
-                document.getElementById('rfidForm').submit();
-                buffer = '';
-            } else {
-                buffer += e.key;
-            }
-        });
-    </script>
-
-    @stack('scripts')
 </body>
 
 </html>

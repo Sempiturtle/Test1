@@ -15,7 +15,7 @@
                     <td class="p-3">{{ $log->student->name }}</td>
                     <td class="p-3 font-mono">{{ $log->rfid_uid }}</td>
                     <td class="p-3">{{ optional($log->time_in)->format('h:i A') }}</td>
-                    <td class="p-3">{{ $log->time_out ? $log->time_out->format('h:i A') : '-' }}</td>
+                    <td class="p-3">{{ $log->time_out ? $log->time_out->format('h:i A') : '-' }} ddd</td>
                     <td class="p-3">{{ $log->created_at->format('M d, Y') }}</td>
                 </tr>
             @endforeach
