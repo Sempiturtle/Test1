@@ -58,6 +58,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/students', [StudentController::class, 'index'])->name('students.index');
     Route::post('/students', [StudentController::class, 'store'])->name('students.store');
 
+    Route::put('/students/{student}', [StudentController::class, 'update'])
+        ->name('students.update');
+
+    Route::delete('/students/{student}', [StudentController::class, 'destroy'])
+        ->name('students.destroy');
+
     // Attendance Logs
     Route::get('/attendance/logs', [AttendanceController::class, 'index'])->name('attendance.logs');
     Route::get('/attendance/latest-logs', [AttendanceController::class, 'latestLogs'])->name('attendance.latestLogs');

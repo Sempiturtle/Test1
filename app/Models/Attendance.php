@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Attendance extends Model
 {
@@ -12,13 +13,13 @@ class Attendance extends Model
         'session',
         'time_in',
         'time_out',
-        'duration_minutes',
+        'duration_minutes'
     ];
 
     protected $casts = [
         'time_in' => 'datetime',
         'time_out' => 'datetime',
-    ];  
+    ];
 
     public function student()
     {
