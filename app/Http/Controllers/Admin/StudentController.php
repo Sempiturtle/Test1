@@ -28,6 +28,7 @@ class StudentController extends Controller
         return back()->with('success', 'Student registered successfully');
     }
 
+    // ✅ AJAX EDIT
     public function update(Request $request, Student $student)
     {
         $request->validate([
@@ -37,17 +38,26 @@ class StudentController extends Controller
             'rfid_uid' => 'required|unique:students,rfid_uid,' . $student->id,
         ]);
 
-        $student->update($request->only('student_id', 'name', 'course', 'rfid_uid'));
+        $student->update([
+            'student_id' => $request->student_id,
+            'name' => $request->name,
+            'course' => $request->course,
+            'rfid_uid' => $request->rfid_uid,
+        ]);
 
-        return response()->json(['success' => true, 'student' => $student]);
+        return response()->json([
+            'success' => true,
+            'student' => $student
+        ]);
     }
 
-
-
+    // ✅ AJAX DELETE
     public function destroy(Student $student)
     {
         $student->delete();
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true
+        ]);
     }
 }

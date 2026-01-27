@@ -11,15 +11,17 @@ use Carbon\Carbon;
 class AttendanceController extends Controller
 {
     // Show Attendance Logs page
-    public function index()
-    {
-        $logs = Attendance::with('student')
-            ->latest('time_in')
-            ->take(20)
-            ->get();
+   public function index()
+{
+    $logs = Attendance::with('student')
+        ->latest('time_in')
+        ->take(20)
+        ->get();
 
-        return view('admin.attendance.index', compact('logs'));
-    }
+    $students = Student::orderBy('name')->get();
+
+    return view('admin.attendance.index', compact('logs', 'students'));
+}
 
     // Handle RFID Tap
     public function simulate(Request $request)
