@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\CalendarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,9 +69,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Attendance Logs
     Route::get('/attendance/logs', [AttendanceController::class, 'index'])->name('attendance.logs');
     Route::get('/attendance/latest-logs', [AttendanceController::class, 'latestLogs'])->name('attendance.latestLogs');
+    Route::put('/attendance/{attendance}/note', [AttendanceController::class, 'updateNote'])->name('attendance.updateNote');
 
     // ========== ANALYTICS ROUTES ==========
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
     Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
+    Route::post('/analytics/follow-up/{student}', [AnalyticsController::class, 'sendFollowUp'])->name('analytics.follow-up');
+
+    // ========== CALENDAR ROUTES ==========
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar/events', [CalendarController::class, 'events'])->name('calendar.events');
 
 });

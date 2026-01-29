@@ -14,6 +14,15 @@ class Student extends Model
         'name',
         'course',
         'rfid_uid',
+        'risk_level',
+        'last_follow_up_at',
+        'is_at_risk',
+        'risk_factors',
+    ];
+
+    protected $casts = [
+        'last_follow_up_at' => 'datetime',
+        'is_at_risk' => 'boolean',
     ];
 
     // Relationships

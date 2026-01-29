@@ -1,437 +1,271 @@
 @extends('layouts.admin')
-@section('title', 'Analytics & Reports')
+@section('title', 'Intelligence Reports')
+
+@section('actions')
+<div class="flex items-center gap-3">
+    <div class="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 shadow-sm">
+        <i class="fa-solid fa-calendar text-slate-500 text-[10px] mr-3"></i>
+        <span class="text-[10px] text-slate-600 font-black uppercase tracking-widest">Active Academic Cycle</span>
+    </div>
+    <a href="{{ route('admin.analytics.export') }}" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2">
+        <i class="fa-solid fa-file-pdf text-[10px]"></i>
+        Export Analysis
+    </a>
+</div>
+@endsection
 
 @section('content')
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+<div class="space-y-8">
     
-    .analytics-container {
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-
-    .metric-card {
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .metric-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: var(--card-gradient);
-    }
-
-    .metric-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    }
-
-    .chart-card {
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        padding: 24px;
-    }
-
-    .engagement-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .badge-high { background: #d1fae5; color: #065f46; }
-    .badge-medium { background: #fef3c7; color: #92400e; }
-    .badge-low { background: #fee2e2; color: #991b1b; }
-    .badge-critical { background: #fee2e2; color: #7f1d1d; }
-
-    .stat-number {
-        font-size: 2.5rem;
-        font-weight: 800;
-        line-height: 1;
-        background: var(--card-gradient);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-</style>
-
-<div class="analytics-container space-y-6">
-
-    <!-- Page Header -->
-    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-2xl p-8">
-        <div class="flex items-center justify-between text-white flex-wrap gap-4">
-            <div>
-                <h1 class="text-3xl font-bold mb-2">Analytics & Reports</h1>
-                <p class="text-white/80 text-lg">Comprehensive participation and engagement insights</p>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="exportData('pdf')" class="px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl hover:bg-white/30 transition flex items-center gap-2">
-                    <i class="fa-solid fa-file-pdf"></i>
-                    Export PDF
-                </button>
-                <button onclick="exportData('excel')" class="px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl hover:bg-white/30 transition flex items-center gap-2">
-                    <i class="fa-solid fa-file-excel"></i>
-                    Export Excel
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Overview Metrics -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="metric-card p-6" style="--card-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <div class="flex items-start justify-between mb-4">
-                <div>
-                    <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide">Total Students</p>
-                    <p class="stat-number mt-2">{{ $totalStudents }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
-                    <i class="fa-solid fa-user-graduate text-indigo-600 text-xl"></i>
-                </div>
-            </div>
-            <p class="text-sm text-gray-500">Enrolled in system</p>
-        </div>
-
-        <div class="metric-card p-6" style="--card-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-            <div class="flex items-start justify-between mb-4">
-                <div>
-                    <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide">Total Attendance</p>
-                    <p class="stat-number mt-2">{{ $totalAttendances }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                    <i class="fa-solid fa-check-double text-green-600 text-xl"></i>
-                </div>
-            </div>
-            <p class="text-sm text-gray-500">Recorded check-ins</p>
-        </div>
-
-        <div class="metric-card p-6" style="--card-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-            <div class="flex items-start justify-between mb-4">
-                <div>
-                    <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide">Unique Attendees</p>
-                    <p class="stat-number mt-2">{{ $uniqueAttendees }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center">
-                    <i class="fa-solid fa-users text-cyan-600 text-xl"></i>
-                </div>
-            </div>
-            <p class="text-sm text-gray-500">Different students</p>
-        </div>
-
-        <div class="metric-card p-6" style="--card-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-            <div class="flex items-start justify-between mb-4">
-                <div>
-                    <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide">Attendance Rate</p>
-                    <p class="stat-number mt-2">{{ $averageAttendanceRate }}%</p>
-                </div>
-                <div class="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center">
-                    <i class="fa-solid fa-chart-pie text-pink-600 text-xl"></i>
-                </div>
-            </div>
-            <p class="text-sm text-gray-500">Overall participation</p>
-        </div>
-    </div>
-
-    <!-- Charts Row 1 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- TOP LEVEL ANALYTICS -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        <!-- Attendance Trends -->
-        <div class="chart-card">
-            <div class="flex items-center justify-between mb-6">
+        <!-- Attendance Velocity -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-8 shadow-lg relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-64 h-64 bg-indigo-50 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between mb-8">
                 <div>
-                    <h3 class="text-xl font-bold text-gray-900">Attendance Trends</h3>
-                    <p class="text-sm text-gray-500">Last 30 days overview</p>
+                    <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider">Participation Velocity</h3>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">7-Day Engagement Trend</p>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                    <i class="fa-solid fa-chart-line text-indigo-600"></i>
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-600">
+                    <i class="fa-solid fa-chart-line"></i>
                 </div>
             </div>
-            <div id="trendsChart" style="height: 300px;"></div>
+            
+            <div id="velocityChart" class="w-full h-72"></div>
         </div>
 
-        <!-- Peak Times -->
-        <div class="chart-card">
-            <div class="flex items-center justify-between mb-6">
+        <!-- Peak Utilization Heatmap -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-8 shadow-lg">
+            <div class="flex items-center justify-between mb-8">
                 <div>
-                    <h3 class="text-xl font-bold text-gray-900">Peak Attendance Times</h3>
-                    <p class="text-sm text-gray-500">By hour of day</p>
+                    <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider">Utilization Density</h3>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Hourly engagement distribution</p>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                    <i class="fa-solid fa-clock text-purple-600"></i>
+                <div class="w-10 h-10 rounded-xl bg-cyan-100 border border-cyan-200 flex items-center justify-center text-cyan-600">
+                    <i class="fa-solid fa-fire"></i>
                 </div>
             </div>
-            <div id="peakTimesChart" style="height: 300px;"></div>
+            
+            <div id="utilizationChart" class="w-full h-72"></div>
         </div>
-
     </div>
 
-    <!-- Charts Row 2 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- MIDDLE ROW: AT-RISK STUDENTS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <!-- Course Participation -->
-        <div class="chart-card">
-            <div class="flex items-center justify-between mb-6">
+        <!-- At-Risk Monitoring -->
+        <div class="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-8 shadow-lg border-l-4 border-l-rose-500">
+            <div class="flex items-center justify-between mb-8">
                 <div>
-                    <h3 class="text-xl font-bold text-gray-900">Course Participation</h3>
-                    <p class="text-sm text-gray-500">By program</p>
+                    <h3 class="text-sm font-black text-rose-600 uppercase tracking-wider">At-Risk Student Monitoring</h3>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Requires immediate guidance intervention</p>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
-                    <i class="fa-solid fa-graduation-cap text-green-600"></i>
-                </div>
-            </div>
-            <div id="courseChart" style="height: 300px;"></div>
-        </div>
-
-        <!-- Engagement Distribution -->
-        <div class="chart-card">
-            <div class="flex items-center justify-between mb-6">
-                <div>
-                    <h3 class="text-xl font-bold text-gray-900">Student Engagement</h3>
-                    <p class="text-sm text-gray-500">Distribution by level</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-cyan-100 flex items-center justify-center">
-                    <i class="fa-solid fa-chart-pie text-cyan-600"></i>
-                </div>
-            </div>
-            <div id="engagementChart" style="height: 300px;"></div>
-        </div>
-
-    </div>
-
-    <!-- No-Show Analysis -->
-    <div class="chart-card">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h3 class="text-xl font-bold text-gray-900">Activity Analysis</h3>
-                <p class="text-sm text-gray-500">Student activity overview</p>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="text-center">
-                    <p class="text-3xl font-bold text-red-600">{{ $noShowAnalysis['inactive_rate'] }}%</p>
-                    <p class="text-xs text-gray-500">Inactive Rate</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-                    <i class="fa-solid fa-user-xmark text-red-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-gray-50 rounded-xl p-4">
-                <p class="text-sm text-gray-600 mb-1">Total Students</p>
-                <p class="text-2xl font-bold text-gray-900">{{ $noShowAnalysis['total_students'] }}</p>
-            </div>
-            <div class="bg-green-50 rounded-xl p-4">
-                <p class="text-sm text-gray-600 mb-1">Active This Month</p>
-                <p class="text-2xl font-bold text-green-600">{{ $noShowAnalysis['active_this_month'] }}</p>
-            </div>
-            <div class="bg-red-50 rounded-xl p-4">
-                <p class="text-sm text-gray-600 mb-1">Inactive</p>
-                <p class="text-2xl font-bold text-red-600">{{ $noShowAnalysis['inactive_count'] }}</p>
-            </div>
-            <div class="bg-orange-50 rounded-xl p-4">
-                <p class="text-sm text-gray-600 mb-1">Never Attended</p>
-                <p class="text-2xl font-bold text-orange-600">{{ $noShowAnalysis['never_attended'] }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Top Engaged Students -->
-    <div class="chart-card">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h3 class="text-xl font-bold text-gray-900">Top Engaged Students</h3>
-                <p class="text-sm text-gray-500">Highest participation rates</p>
-            </div>
-            <div class="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center">
-                <i class="fa-solid fa-star text-yellow-600"></i>
-            </div>
-        </div>
-
-        <div class="space-y-3">
-            @foreach($topEngagedStudents as $index => $student)
-                <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                        {{ $index + 1 }}
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-gray-900">{{ $student['name'] }}</p>
-                        <p class="text-sm text-gray-500">{{ $student['course'] }} • Last: {{ $student['last_attendance'] }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-2xl font-bold text-indigo-600">{{ $student['attendance_count'] }}</p>
-                        <p class="text-xs text-gray-500">sessions</p>
-                    </div>
-                    <div>
-                        <span class="engagement-badge badge-{{ $student['engagement_score'] >= 70 ? 'high' : ($student['engagement_score'] >= 40 ? 'medium' : 'low') }}">
-                            {{ $student['engagement_score'] }}% Engaged
-                        </span>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    <!-- At-Risk Students -->
-    <div class="chart-card border-l-4 border-red-500">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h3 class="text-xl font-bold text-gray-900">At-Risk Students</h3>
-                <p class="text-sm text-gray-500">Requiring immediate attention</p>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-semibold">
-                    {{ $atRiskStudents->count() }} Students
+                <span class="px-3 py-1 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[10px] font-black uppercase tracking-wider">
+                    {{ count($atRiskStudents) }} Critical Entities
                 </span>
-                <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-                    <i class="fa-solid fa-exclamation-triangle text-red-600"></i>
-                </div>
             </div>
-        </div>
 
-        @if($atRiskStudents->count() > 0)
-            <div class="space-y-3">
-                @foreach($atRiskStudents->take(10) as $student)
-                    <div class="flex items-center gap-4 p-4 bg-red-50 rounded-xl border border-red-100">
-                        <div class="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-red-700 font-bold text-sm flex-shrink-0">
-                            {{ strtoupper(substr($student['name'], 0, 1)) }}
+            <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                @foreach($atRiskStudents->take(5) as $student)
+                    <div class="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 font-black">
+                                {{ strtoupper(substr($student['name'], 0, 1)) }}
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-900">{{ $student['name'] }}</h4>
+                                <p class="text-[9px] font-black text-slate-500 uppercase">{{ $student['course'] }}</p>
+                            </div>
                         </div>
-                        <div class="flex-1">
-                            <p class="font-semibold text-gray-900">{{ $student['name'] }}</p>
-                            <p class="text-sm text-gray-600">{{ $student['course'] }} • Last: {{ $student['last_attendance'] }}</p>
+                        <div class="flex items-center gap-6">
+                            <div class="text-right">
+                                <p class="text-xs font-black text-rose-600">{{ $student['days_since_last_attendance'] ?? '∞' }} Days</p>
+                                <p class="text-[9px] font-bold text-slate-500 uppercase">Since last sync</p>
+                            </div>
+                            <button 
+                                onclick="triggerFollowUp({{ $student['id'] }}, '{{ $student['name'] }}')"
+                                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/20">
+                                Protocol
+                            </button>
                         </div>
-                        <div class="text-right">
-                            <p class="text-lg font-bold text-red-600">{{ $student['days_since_last_attendance'] ?? 'Never' }}</p>
-                            <p class="text-xs text-gray-500">{{ $student['days_since_last_attendance'] ? 'days ago' : '' }}</p>
-                        </div>
-                        <div>
-                            <span class="engagement-badge badge-{{ strtolower($student['risk_level']) }}">
-                                <i class="fa-solid fa-exclamation-circle"></i>
-                                {{ $student['risk_level'] }} Risk
-                            </span>
-                        </div>
-                        <button onclick="alert('Follow-up feature coming soon for: {{ $student['name'] }}')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition">
-                            Follow-up
-                        </button>
                     </div>
                 @endforeach
             </div>
-        @else
-            <div class="text-center py-12">
-                <i class="fa-solid fa-check-circle text-6xl text-green-500 mb-4"></i>
-                <p class="text-lg font-semibold text-gray-900">All Students Engaged!</p>
-                <p class="text-gray-500">No students require immediate attention</p>
+        </div>
+
+        <!-- Metric Cards Container -->
+        <div class="space-y-6">
+            <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-3xl p-8 shadow-lg relative group">
+                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600 mb-6">Retention Velocity</p>
+                <div class="flex items-end justify-between">
+                    <div>
+                        <h4 class="text-4xl font-black text-slate-900 leading-none">{{ $retentionVelocity }}<span class="text-lg ml-1 text-slate-500">Days</span></h4>
+                        <p class="text-xs font-bold text-slate-600 mt-2 uppercase">Mean Return Interval</p>
+                    </div>
+                    <div class="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg group-hover:rotate-12 transition-transform">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                </div>
             </div>
-        @endif
+
+            <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-3xl p-8 shadow-lg relative group">
+                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600 mb-6">Wellness Resilience</p>
+                <div class="flex items-end justify-between">
+                    <div>
+                        <h4 class="text-4xl font-black text-slate-900 leading-none">{{ $wellnessResilience }}%</h4>
+                        <p class="text-xs font-bold text-slate-600 mt-2 uppercase">Positive Outcome Ratio</p>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg group-hover:rotate-12 transition-transform">
+                        <i class="fa-solid fa-shield-heart"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DATA TABLE SUMMARY -->
+    <div class="space-y-4">
+        <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-3">
+            <i class="fa-solid fa-ranking-star text-amber-500 text-[10px]"></i>
+            Student Engagement Metrics
+        </h3>
+        
+        <x-glass-table :headers="['Student Entity', 'Programs', 'Session Accumulation', 'Status']">
+            @foreach($studentEngagement->take(10) as $student)
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-100 border border-indigo-200 flex items-center justify-center text-xs font-black text-indigo-600">
+                                {{ strtoupper(substr($student->name, 0, 1)) }}
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-900">{{ $student->name }}</h4>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">{{ $student->course }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-xs font-bold text-slate-600">Default Program</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-black text-slate-900">{{ $student->attendances_count }}</span>
+                            <div class="flex-1 max-w-[100px] h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-500" style="width: {{ ($student->attendances_count / max($studentEngagement->pluck('attendances_count')->toArray() ?: [1])) * 100 }}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <x-status-badge type="info" label="Active Sync" />
+                    </td>
+                </tr>
+            @endforeach
+        </x-glass-table>
     </div>
 
 </div>
 
+<!-- TOAST -->
+<div id="toast" class="fixed bottom-8 right-8 z-[200] hidden animate-fade-in">
+    <div class="flex items-center gap-4 bg-slate-900 border border-white/10 rounded-2xl px-6 py-4 shadow-2xl relative overflow-hidden">
+        <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+        <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-satellite-dish"></i>
+        </div>
+        <div>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500 mb-0.5">Transmission Successful</p>
+            <p id="toast-msg" class="text-sm font-bold text-white"></p>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
 <script>
-// Attendance Trends Chart
-new ApexCharts(document.querySelector("#trendsChart"), {
-    chart: { type: 'area', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-    series: [{
-        name: 'Attendance',
-        data: {!! json_encode($attendanceTrends->pluck('count')) !!}
-    }],
-    xaxis: {
-        categories: {!! json_encode($attendanceTrends->pluck('formatted_date')) !!}
-    },
-    colors: ['#6366f1'],
-    fill: {
-        type: 'gradient',
-        gradient: {
-            shadeIntensity: 1,
-            opacityFrom: 0.7,
-            opacityTo: 0.2
+function triggerFollowUp(studentId, name) {
+    fetch(`/admin/analytics/follow-up/${studentId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
         }
-    },
-    stroke: { curve: 'smooth', width: 3 },
-    dataLabels: { enabled: false }
-}).render();
+    })
+    .then(res => res.json())
+    .then(res => {
+        const toast = document.getElementById('toast');
+        const msg = document.getElementById('toast-msg');
+        msg.textContent = res.message;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 4000);
+    });
+}
 
-// Peak Times Chart
-new ApexCharts(document.querySelector("#peakTimesChart"), {
-    chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-    series: [{
-        name: 'Attendance',
-        data: {!! json_encode($peakTimes['by_hour']->pluck('count')) !!}
-    }],
-    xaxis: {
-        categories: {!! json_encode($peakTimes['by_hour']->pluck('hour')) !!}
-    },
-    colors: ['#8b5cf6'],
-    plotOptions: {
-        bar: {
-            borderRadius: 8,
-            distributed: false
-        }
-    },
-    dataLabels: { enabled: false }
-}).render();
+document.addEventListener('DOMContentLoaded', () => {
+    const commonOptions = {
+        theme: { mode: 'light' },
+        chart: {
+            background: 'transparent',
+            toolbar: { show: false },
+            fontFamily: '"Plus Jakarta Sans", sans-serif'
+        },
+        grid: {
+            borderColor: '#e2e8f0',
+            xaxis: { lines: { show: false } }
+        },
+        dataLabels: { enabled: false },
+    };
 
-// Course Participation Chart
-new ApexCharts(document.querySelector("#courseChart"), {
-    chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-    series: [{
-        name: 'Students',
-        data: {!! json_encode($courseParticipation->pluck('unique_students')) !!}
-    }, {
-        name: 'Total Attendance',
-        data: {!! json_encode($courseParticipation->pluck('total_attendance')) !!}
-    }],
-    xaxis: {
-        categories: {!! json_encode($courseParticipation->pluck('course')) !!}
-    },
-    colors: ['#6366f1', '#10b981'],
-    plotOptions: {
-        bar: {
-            borderRadius: 8,
-            columnWidth: '60%'
-        }
-    },
-    dataLabels: { enabled: false },
-    legend: { position: 'top' }
-}).render();
-
-// Engagement Distribution Chart
-new ApexCharts(document.querySelector("#engagementChart"), {
-    chart: { type: 'donut', height: 300, fontFamily: 'Inter, sans-serif' },
-    series: [
-        {{ $engagementScores['distribution']['high'] }},
-        {{ $engagementScores['distribution']['medium'] }},
-        {{ $engagementScores['distribution']['low'] }}
-    ],
-    labels: ['High Engagement', 'Medium Engagement', 'Low Engagement'],
-    colors: ['#10b981', '#f59e0b', '#ef4444'],
-    legend: { 
-        position: 'bottom',
-        fontSize: '14px'
-    },
-    plotOptions: {
-        pie: {
-            donut: {
-                size: '65%'
+    // Attendance Velocity
+    new ApexCharts(document.querySelector("#velocityChart"), {
+        ...commonOptions,
+        chart: { ...commonOptions.chart, type: 'area', height: 280 },
+        series: [{
+            name: 'Attendees',
+            data: {!! json_encode($attendanceTrends->pluck('count')) !!}
+        }],
+        xaxis: {
+            categories: {!! json_encode($attendanceTrends->pluck('date')) !!},
+            labels: { style: { colors: '#64748b', fontSize: '10px', fontWeight: 600 } }
+        },
+        colors: ['#6366f1'],
+        stroke: { curve: 'smooth', width: 3 },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.4,
+                opacityTo: 0.05,
+                stops: [0, 90, 100]
             }
         }
-    }
-}).render();
+    }).render();
 
-// Export functions
-function exportData(type) {
-    window.location.href = `/admin/analytics/export?type=${type}`;
-}
+    // Utilization Columns
+    new ApexCharts(document.querySelector("#utilizationChart"), {
+        ...commonOptions,
+        chart: { ...commonOptions.chart, type: 'bar', height: 280 },
+        series: [{
+            name: 'Avg Count',
+            data: {!! json_encode($peakUtilization->pluck('count')) !!}
+        }],
+        xaxis: {
+            categories: {!! json_encode($peakUtilization->pluck('hour')->map(fn($h) => $h.':00')) !!},
+            labels: { style: { colors: '#64748b', fontSize: '10px', fontWeight: 600 } }
+        },
+        colors: ['#22d3ee'],
+        plotOptions: {
+            bar: {
+                borderRadius: 4,
+                columnWidth: '60%',
+                colors: {
+                    ranges: [{ from: 0, to: 100, color: '#22d3ee' }]
+                }
+            }
+        },
+    }).render();
+});
 </script>
+@endpush
 @endsection

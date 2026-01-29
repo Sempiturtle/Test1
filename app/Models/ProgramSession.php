@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
-class Session extends Model
+class ProgramSession extends Model
 {
     use HasFactory;
+
+    protected $table = 'program_sessions';
 
     protected $fillable = [
         'program_id',

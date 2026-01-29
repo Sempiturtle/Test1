@@ -11,14 +11,15 @@ class Attendance extends Model
 
     protected $fillable = [
         'student_id',
-        'session_id',
+        'program_session_id',
         'rfid_uid',
-        'session',
         'time_in',
         'time_out',
         'duration_minutes',
         'status',
         'notes',
+        'category',
+        'severity',
     ];
 
     protected $casts = [
@@ -32,9 +33,9 @@ class Attendance extends Model
         return $this->belongsTo(Student::class);
     }
 
-    public function session()
+    public function programSession()
     {
-        return $this->belongsTo(Session::class);
+        return $this->belongsTo(ProgramSession::class, 'program_session_id');
     }
 
     // Scopes

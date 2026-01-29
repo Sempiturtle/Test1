@@ -24,12 +24,12 @@ class Program extends Model
     // Relationships
     public function sessions()
     {
-        return $this->hasMany(Session::class);
+        return $this->hasMany(ProgramSession::class);
     }
 
     public function attendances()
     {
-        return $this->hasManyThrough(Attendance::class, Session::class);
+        return $this->hasManyThrough(Attendance::class, ProgramSession::class);
     }
 
     // Scopes

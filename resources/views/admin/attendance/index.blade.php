@@ -1,173 +1,73 @@
 @extends('layouts.admin')
-@section('title', 'Attendance Logs')
+@section('title', 'Attendance Management')
+
+@section('actions')
+<form action="{{ route('admin.attendance.logs') }}" method="GET" class="flex items-center gap-3">
+    <div class="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 shadow-sm">
+        <i class="fa-solid fa-graduation-cap text-slate-400 text-[10px] mr-3"></i>
+        <select name="course" onchange="this.form.submit()" class="bg-transparent border-none focus:ring-0 text-[10px] text-slate-700 font-extrabold uppercase tracking-widest cursor-pointer outline-none">
+            <option value="">All Academic Units</option>
+            <option value="BSCS" {{ request('course') == 'BSCS' ? 'selected' : '' }}>BSCS - Computer Science</option>
+            <option value="BSOA" {{ request('course') == 'BSOA' ? 'selected' : '' }}>BSOA - Office Administration</option>
+            <option value="BSCRIM" {{ request('course') == 'BSCRIM' ? 'selected' : '' }}>BSCRIM - Criminology</option>
+            <option value="BSTM" {{ request('course') == 'BSTM' ? 'selected' : '' }}>BSTM - Tourism Management</option>
+            <option value="BSA" {{ request('course') == 'BSA' ? 'selected' : '' }}>BSA - Accountancy</option>
+        </select>
+    </div>
+    <div class="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors group" onclick="this.querySelector('input[type=date]').showPicker()">
+        <i class="fa-solid fa-calendar-day text-slate-400 text-[10px] mr-3 group-hover:text-indigo-500 transition-colors"></i>
+        <input type="date" name="date" value="{{ request('date') }}" onchange="this.form.submit()" onclick="event.stopPropagation()" class="bg-transparent border-none focus:ring-0 text-[10px] text-slate-700 font-extrabold uppercase tracking-widest cursor-pointer w-full" style="color-scheme: light;">
+    </div>
+    @if(request()->anyFilled(['course', 'date', 'search']))
+        <a href="{{ route('admin.attendance.logs') }}" class="w-10 h-10 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-center text-rose-500 hover:bg-rose-100 transition-all shadow-sm" title="Clear Filters">
+            <i class="fa-solid fa-filter-circle-xmark text-xs"></i>
+        </a>
+    @endif
+</form>
+@endsection
 
 @section('content')
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+<div class="space-y-8">
     
-    :root {
-        --primary: #6366f1;
-        --primary-dark: #4f46e5;
-        --success: #10b981;
-        --warning: #f59e0b;
-        --error: #ef4444;
-        --gray-50: #f9fafb;
-        --gray-100: #f3f4f6;
-        --gray-200: #e5e7eb;
-        --gray-300: #d1d5db;
-        --gray-600: #4b5563;
-        --gray-700: #374151;
-        --gray-900: #111827;
-    }
-
-    .attendance-container {
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-    }
-
-    .scanner-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .scanner-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        opacity: 0.5;
-    }
-
-    .scanner-content {
-        position: relative;
-        z-index: 1;
-    }
-
-    .status-dot {
-        animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse-dot {
-        0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-        }
-        50% {
-            opacity: 0.7;
-            transform: scale(1.1);
-        }
-    }
-
-    .table-wrapper {
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-
-    .status-badge {
-        font-weight: 600;
-        letter-spacing: 0.025em;
-    }
-
-    .modal-backdrop {
-        animation: fadeIn 0.2s ease-out;
-    }
-
-    .modal-content {
-        animation: slideUp 0.3s ease-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    .btn-manual {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        transition: all 0.2s ease;
-    }
-
-    .btn-manual:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .toast {
-        animation: toastSlide 0.3s ease-out;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    }
-
-    @keyframes toastSlide {
-        from {
-            opacity: 0;
-            transform: translateX(100px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    tbody tr {
-        transition: all 0.15s ease;
-    }
-
-    tbody tr:hover {
-        background-color: var(--gray-50);
-        transform: translateX(2px);
-    }
-
-    .icon-wrapper {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-</style>
-
-<div class="attendance-container space-y-6">
-
-    <!-- RFID SCANNER CARD -->
-    <div class="max-w-2xl">
-        <div class="scanner-card rounded-2xl p-8 shadow-2xl">
-            <div class="scanner-content">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-4">
-                        <div class="h-14 w-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white shadow-lg icon-wrapper">
-                            <i class="fa-solid fa-id-card text-2xl"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-2xl font-bold text-white mb-1">RFID Scanner</h2>
-                            <p class="text-white/80 text-sm font-medium">Place card near reader to log attendance</p>
-                        </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- ATTENDANCE AUTHENTICATION -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="relative overflow-hidden bg-white border border-indigo-100 rounded-3xl p-8 shadow-lg group">
+                <!-- Decoration -->
+                <div class="absolute -top-20 -left-20 w-40 h-40 bg-indigo-50 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-100 transition-all duration-500"></div>
+                
+                <div class="relative z-10 flex flex-col items-center text-center">
+                    <div class="w-20 h-20 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-6 shadow-sm relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-t from-indigo-100/50 to-transparent"></div>
+                        <i class="fa-solid fa-id-card text-3xl text-indigo-600 animate-pulse"></i>
                     </div>
                     
-                    <!-- Manual Entry Button -->
-                    <button 
-                        id="openModalBtn"
-                        type="button"
-                        class="btn-manual px-5 py-2.5 text-white text-sm font-semibold rounded-xl flex items-center gap-2.5">
-                        <i class="fa-solid fa-keyboard"></i>
-                        Manual Entry
-                    </button>
+                    <h3 class="text-xl font-black text-slate-900 tracking-tight mb-2">Scanner Active</h3>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+                        Please tap your ID card <br> to synchronize attendance
+                    </p>
+
+                    <!-- SCANNER VISUALIZER -->
+                    <div class="mt-8 relative w-full aspect-square max-w-[200px] flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full border-2 border-indigo-100 animate-[ping_3s_linear_infinite]"></div>
+                        <div class="absolute inset-4 rounded-full border-2 border-indigo-200 animate-[ping_2s_linear_infinite]"></div>
+                        <div class="absolute inset-8 rounded-full border border-indigo-300 animate-[spin_10s_linear_infinite]">
+                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-indigo-600 rounded-full shadow-lg"></div>
+                        </div>
+                        <div class="relative w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center border border-indigo-100">
+                            <i class="fa-solid fa-wifi text-2xl text-indigo-600 rotate-90"></i>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 w-full">
+                        <button 
+                            id="openModalBtn"
+                            class="w-full py-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 transition-all flex items-center justify-center gap-3 shadow-sm">
+                            <i class="fa-solid fa-keyboard text-xs"></i>
+                            Manual Override
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Hidden RFID Input -->
@@ -177,263 +77,362 @@
                     id="rfid_uid"
                     autofocus
                     autocomplete="off"
-                    class="opacity-0 absolute -z-10"
-                    style="position: absolute; left: -9999px;"
+                    class="opacity-0 absolute inset-0 cursor-default"
                 />
-                
-                <!-- Status Indicator -->
-                <div class="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-xl px-4 py-3 border border-white/20">
-                    <div class="status-dot h-3 w-3 rounded-full bg-green-400 shadow-lg shadow-green-400/50"></div>
-                    <span class="text-white font-medium text-sm">System Active · Ready to scan</span>
+            </div>
+
+            <!-- STATUS MONITOR -->
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 font-mono text-slate-300 shadow-xl">
+                <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">System Logs</span>
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                </div>
+                <div id="terminal-feed" class="space-y-2 text-[11px] leading-relaxed max-h-40 overflow-y-auto custom-scrollbar">
+                    <div class="text-emerald-400">>> System initialized...</div>
+                    <div class="text-indigo-400">>> RFID reader online.</div>
+                    <div class="text-slate-500">>> Waiting for input...</div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- ATTENDANCE TABLE -->
-    <div class="table-wrapper overflow-hidden">
-        <div class="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-            <div class="flex items-center justify-between">
+        <!-- LOGS TABLE -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="flex items-center justify-between px-2">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-1">Attendance Records</h2>
-                    <p class="text-gray-600 text-sm">Real-time student check-in and check-out logs</p>
+                    <h3 class="text-lg font-black text-slate-900 tracking-tight">Real-time Authentication Feed</h3>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Showing latest 20 protocols</p>
                 </div>
-                <div class="flex items-center gap-2 text-sm text-gray-500">
-                    <i class="fa-solid fa-clock"></i>
-                    <span>Last 20 entries</span>
+                <div class="relative group">
+                    <form action="{{ route('admin.attendance.logs') }}" method="GET">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]"></i>
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search ID or Name..." class="bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-[10px] text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all w-48 lg:w-64 font-black uppercase tracking-widest shadow-sm">
+                        @if(request('course')) <input type="hidden" name="course" value="{{ request('course') }}"> @endif
+                        @if(request('date')) <input type="hidden" name="date" value="{{ request('date') }}"> @endif
+                    </form>
                 </div>
             </div>
-        </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50 border-b-2 border-gray-200">
-                    <tr>
-                        <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Student</th>
-                        <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">RFID Number</th>
-                        <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Time In</th>
-                        <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Time Out</th>
-                        <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                        <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Duration</th>
-                    </tr>
-                </thead>
-
-                <tbody id="attendanceBody" class="bg-white divide-y divide-gray-100">
-                    @foreach ($logs as $log)
-                        <tr id="attendance-{{ $log->id }}" class="group">
-                            <td class="px-8 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                                        {{ strtoupper(substr($log->student->name, 0, 1)) }}
-                                    </div>
-                                    <span class="font-semibold text-gray-900">{{ $log->student->name }}</span>
+            <script>window.attendanceRegistry = {};</script>
+            <x-glass-table :headers="['Subject', 'Protocol ID', 'Clock In', 'Clock Out', 'Case Note', 'State']">
+                <tbody id="attendanceBody">
+                @foreach ($logs as $log)
+                    <tr id="attendance-{{ $log->id }}" class="hover:bg-slate-50 transition-colors group">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xs font-black text-indigo-600">
+                                    {{ strtoupper(substr($log->student->name, 0, 1)) }}
                                 </div>
-                            </td>
-
-                            <td class="px-8 py-4">
-                                <code class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-mono font-medium">
-                                    {{ $log->rfid_uid }}
-                                </code>
-                            </td>
-
-                            <td class="px-8 py-4">
-                                <span class="text-gray-700 font-medium text-sm">
+                                <div>
+                                    <p class="text-sm font-bold text-slate-900">{{ $log->student->name }}</p>
+                                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-tighter">{{ $log->student->course }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <code class="text-[10px] bg-slate-100 px-2 py-1 rounded text-cyan-600 font-bold tracking-tighter border border-slate-200">
+                                {{ $log->rfid_uid }}
+                            </code>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col">
+                                <span class="text-[11px] font-black text-slate-700">
                                     {{ $log->time_in ? $log->time_in->timezone('Asia/Manila')->format('h:i:s A') : '—' }}
                                 </span>
-                            </td>
-
-                            <td class="px-8 py-4">
-                                <span class="text-gray-700 font-medium text-sm">
+                                <span class="text-[9px] font-bold text-slate-500 uppercase">
+                                    {{ $log->time_in ? $log->time_in->timezone('Asia/Manila')->format('M d, Y') : '' }}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 border-l border-slate-100">
+                            <div class="flex flex-col">
+                                <span class="text-[11px] font-black text-slate-700">
                                     {{ $log->time_out ? $log->time_out->timezone('Asia/Manila')->format('h:i:s A') : '—' }}
                                 </span>
-                            </td>
-
-                            <td class="px-8 py-4">
-                                @if($log->time_out)
-                                    <span class="status-badge inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-green-100 text-green-700 text-xs">
-                                        <i class="fa-solid fa-check-circle"></i>
-                                        Completed
-                                    </span>
-                                @else
-                                    <span class="status-badge inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-700 text-xs">
-                                        <i class="fa-solid fa-clock"></i>
-                                        In Session
-                                    </span>
-                                @endif
-                            </td>
-
-                            <td class="px-8 py-4">
-                                <span class="text-gray-700 font-semibold text-sm">
-                                    {{ $log->duration_minutes ? $log->duration_minutes.' mins' : '—' }}
+                                <span class="text-[9px] font-bold text-slate-500 uppercase">
+                                    {{ $log->time_out ? 'Authenticated' : 'Pending' }}
                                 </span>
-                            </td>
-                        </tr>
-                    @endforeach
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <script>window.attendanceRegistry[{{ $log->id }}] = {!! json_encode($log->only(['id', 'notes', 'category', 'severity'])) !!};</script>
+                            <button 
+                                type="button"
+                                onclick="openNoteModal({{ $log->id }})"
+                                class="note-trigger-{{ $log->id }} group/note relative"
+                            >
+                                @if($log->notes)
+                                    <i class="fa-solid fa-comment-dots text-indigo-500 text-lg hover:scale-110 transition-transform"></i>
+                                    <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-2 py-1 rounded text-[9px] font-black uppercase whitespace-nowrap opacity-0 group-hover/note:opacity-100 transition-opacity">Read Analysis</span>
+                                @else
+                                    <i class="fa-solid fa-note-sticky text-slate-300 text-lg hover:text-indigo-500 transition-colors"></i>
+                                    <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-2 py-1 rounded text-[9px] font-black uppercase whitespace-nowrap opacity-0 group-hover/note:opacity-100 transition-opacity">Add Note</span>
+                                @endif
+                            </button>
+                        </td>
+                        <td class="px-6 py-4">
+                            <x-status-badge 
+                                type="{{ $log->time_out ? 'success' : 'warning' }}" 
+                                label="{{ $log->time_out ? 'Validated' : 'Encrypted' }}" 
+                            />
+                        </td>
+                    </tr>
+                @endforeach
                 </tbody>
-            </table>
+            </x-glass-table>
+
+            <!-- PROFESSIONAL PAGINATION -->
+            <div class="mt-8">
+                {{ $logs->links() }}
+            </div>
         </div>
     </div>
 </div>
 
 <!-- MANUAL ENTRY MODAL -->
-<div id="manualEntryModal" class="modal-backdrop hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+<div id="manualEntryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-6 transition-all duration-300">
+    <div class="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden relative">
+        <div class="absolute -top-32 -right-32 w-64 h-64 bg-indigo-50 rounded-full blur-[80px] pointer-events-none"></div>
         
-        <!-- Modal Header -->
-        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
-            <div class="flex items-center justify-between">
+        <div class="p-10 relative z-10">
+            <div class="flex items-center justify-between mb-8">
                 <div class="flex items-center gap-4">
-                    <div class="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white shadow-lg icon-wrapper">
-                        <i class="fa-solid fa-keyboard text-xl"></i>
+                    <div class="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100">
+                        <i class="fa-solid fa-terminal text-xl text-indigo-600"></i>
                     </div>
                     <div>
-                        <h3 class="text-xl font-bold text-white">Manual Entry</h3>
-                        <p class="text-white/80 text-sm">For students without RFID card</p>
+                        <h3 class="text-2xl font-black text-slate-900 tracking-tight">Manual Override</h3>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Administrative protocol required</p>
                     </div>
                 </div>
-                <button id="closeModalBtn" class="text-white/80 hover:text-white transition-colors">
-                    <i class="fa-solid fa-times text-2xl"></i>
+                <button id="closeModalBtn" class="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
                 </button>
             </div>
-        </div>
 
-        <!-- Modal Body -->
-        <form id="manualEntryForm" class="p-8">
-            @csrf
-            <div class="space-y-5">
-                <div>
-                    <label for="manual_rfid_uid" class="block text-sm font-semibold text-gray-700 mb-2">
-                        RFID Number
-                    </label>
-                    <input
-                        type="text"
+            <form id="manualEntryForm" class="space-y-6">
+                @csrf
+                <div class="space-y-3">
+                    <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Protocol Identification (RFID)</label>
+                    <input 
+                        type="text" 
                         id="manual_rfid_uid"
-                        placeholder="Enter student RFID number"
-                        class="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3.5
-                               text-gray-900 placeholder-gray-400 font-medium
-                               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                               transition-all duration-200"
+                        placeholder="Enter identification string..."
+                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-slate-900 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all font-bold placeholder-slate-400 shadow-inner"
                         required
-                    />
+                    >
                 </div>
 
-                <div class="flex gap-3 pt-2">
-                    <button
-                        type="button"
-                        id="cancelModalBtn"
-                        class="flex-1 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all duration-200">
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        class="flex-1 px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/30">
-                        Submit
-                    </button>
+                <div class="flex gap-4 pt-4">
+                    <button type="button" id="cancelModalBtn" class="flex-1 py-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 transition-all">Cancel</button>
+                    <button type="submit" class="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-600/20 transition-all">Authenticate</button>
                 </div>
-            </div>
-        </form>
-
+            </form>
+        </div>
     </div>
 </div>
 
-<!-- TOAST NOTIFICATION -->
-<div id="toast" class="toast fixed bottom-6 right-6 hidden px-6 py-4 rounded-xl text-white font-semibold text-sm"></div>
+</div>
+<!-- CASE NOTE PROTOCOL MODAL -->
+<div id="noteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] hidden flex items-center justify-center p-6">
+    <div class="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl max-w-xl w-full overflow-hidden relative">
+        <div class="absolute -top-32 -right-32 w-64 h-64 bg-indigo-50 rounded-full blur-[80px] pointer-events-none"></div>
+        
+        <div class="p-10 relative z-10">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100">
+                        <i class="fa-solid fa-feather-pointed text-xl text-indigo-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black text-slate-900 tracking-tight">Case Analysis</h3>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1 text-indigo-500/50">Counseling Documentation Protocol</p>
+                    </div>
+                </div>
+                <button onclick="closeNoteModal()" class="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <form id="noteForm" class="space-y-6" onsubmit="return false;">
+                @csrf
+                <input type="hidden" name="_method" value="PUT">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Session Category</label>
+                        <select id="case_category" name="category" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-slate-900 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all font-bold cursor-pointer block !pointer-events-auto outline-none shadow-inner" style="pointer-events: auto !important;">
+                            <option value="Walk-in">Walk-in</option>
+                            <option value="Academic">Academic Support</option>
+                            <option value="Crisis">Crisis Intervention</option>
+                            <option value="Personal">Personal Support</option>
+                            <option value="Follow-up">Routine Follow-up</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Priority Level</label>
+                        <select id="case_severity" name="severity" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-slate-900 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all font-bold cursor-pointer block !pointer-events-auto outline-none shadow-inner" style="pointer-events: auto !important;">
+                            <option value="low">Low Priority</option>
+                            <option value="medium">Normal Attention</option>
+                            <option value="high">Urgent Required</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Confidential Case Notes</label>
+                    <textarea id="case_notes" name="notes" placeholder="Detailed session narrative..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-slate-900 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all font-bold placeholder-slate-400 min-h-[150px] block !pointer-events-auto shadow-inner" style="pointer-events: auto !important;"></textarea>
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" id="submitNoteBtn" class="w-full py-5 bg-indigo-600 hover:bg-indigo-500 rounded-2xl text-xs font-black uppercase tracking-[0.2em] text-white shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-shield-check"></i>
+                        Commit to Case History
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div id="toast" class="fixed bottom-8 right-8 z-[10000] hidden animate-fade-in">
+    <div class="flex items-center gap-4 bg-white border border-slate-200 rounded-2xl px-6 py-4 shadow-2xl relative overflow-hidden">
+        <div id="toast-glow" class="absolute left-0 top-0 bottom-0 w-1.5 shadow-lg"></div>
+        <div id="toast-icon" class="w-10 h-10 rounded-xl flex items-center justify-center text-xl"></div>
+        <div>
+            <p id="toast-title" class="text-[10px] font-black uppercase tracking-[0.2em] mb-0.5"></p>
+            <p id="toast-msg" class="text-sm font-bold text-slate-700"></p>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('rfid_uid');
+    const terminal = document.getElementById('terminal-feed');
     const body = document.getElementById('attendanceBody');
     const modal = document.getElementById('manualEntryModal');
-    const manualInput = document.getElementById('manual_rfid_uid');
-    const manualForm = document.getElementById('manualEntryForm');
     
-    let locked = false;
-    let rfidBuffer = '';
-    let rfidTimeout = null;
+    window.protocolActive = false;
 
-    // ============================================
-    // AUTO RFID SCANNING (Background)
-    // ============================================
-    
+    function logToTerminal(msg, color = 'slate-500') {
+        const line = document.createElement('div');
+        line.className = `text-${color}`;
+        line.innerHTML = `>> ${msg}`;
+        terminal.prepend(line);
+        if (terminal.children.length > 50) terminal.lastChild.remove();
+    }
+
     function maintainFocus() {
-        if (!modal.classList.contains('hidden')) return;
-        if (document.activeElement !== input) {
+        if (window.protocolActive) return;
+        
+        const manualModal = document.getElementById('manualEntryModal');
+        if (!manualModal.classList.contains('hidden')) return;
+
+        if (document.activeElement !== input && 
+            document.activeElement.tagName !== 'INPUT' && 
+            document.activeElement.tagName !== 'TEXTAREA' && 
+            document.activeElement.tagName !== 'SELECT') {
             input.focus();
         }
     }
-
     setInterval(maintainFocus, 100);
-
-    input.addEventListener('input', (e) => {
-        const value = e.target.value;
-        
-        if (rfidTimeout) clearTimeout(rfidTimeout);
-        
-        rfidBuffer = value;
-        
-        rfidTimeout = setTimeout(() => {
-            if (rfidBuffer.trim()) {
-                submitRFID(rfidBuffer.trim());
-                rfidBuffer = '';
-                input.value = '';
-            }
-        }, 100);
-    });
 
     input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (rfidTimeout) clearTimeout(rfidTimeout);
-            
             const uid = input.value.trim();
             if (uid) {
+                logToTerminal(`Input detected: ${uid}`, 'indigo-400');
                 submitRFID(uid);
                 input.value = '';
-                rfidBuffer = '';
             }
         }
     });
 
-    // ============================================
-    // MANUAL ENTRY MODAL
-    // ============================================
-    
-    document.getElementById('openModalBtn').addEventListener('click', () => {
-        modal.classList.remove('hidden');
-        setTimeout(() => manualInput.focus(), 100);
-    });
+    document.getElementById('openModalBtn').addEventListener('click', () => modal.classList.remove('hidden'));
+    document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.add('hidden'));
+    document.getElementById('cancelModalBtn').addEventListener('click', () => modal.classList.add('hidden'));
 
-    document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-    document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+    // Note Modal Handlers
+    window.openNoteModal = (id) => {
+        logToTerminal(`Initiating documentation for Registry #${id}...`, 'indigo-400');
+        window.protocolActive = true;
+        const data = window.attendanceRegistry[id] || { notes: '', category: 'Walk-in', severity: 'low' };
 
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
+        const noteModal = document.getElementById('noteModal');
+        const noteForm = document.getElementById('noteForm');
+        
+        noteForm.action = `/admin/attendance/${id}/note`;
+        document.getElementById('case_notes').value = data.notes || '';
+        document.getElementById('case_category').value = data.category || 'Walk-in';
+        document.getElementById('case_severity').value = data.severity || 'low';
+        
+        noteModal.classList.remove('hidden');
+        logToTerminal(`Interface unlocked. Awaiting administrative input.`, 'emerald-400');
+        
+        // Immediate focus transition
+        setTimeout(() => document.getElementById('case_notes').focus(), 100);
+    };
 
-    function closeModal() {
-        modal.classList.add('hidden');
-        manualInput.value = '';
-        setTimeout(() => input.focus(), 100);
-    }
+    window.closeNoteModal = () => {
+        logToTerminal(`Protocol terminated. Resuming RFID monitor.`, 'slate-500');
+        window.protocolActive = false;
+        document.getElementById('noteModal').classList.add('hidden');
+    };
 
-    manualForm.addEventListener('submit', (e) => {
+    document.getElementById('noteForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const uid = manualInput.value.trim();
+        const form = this;
+        const submitBtn = document.getElementById('submitNoteBtn');
+        const originalText = submitBtn.innerHTML;
+        
+        logToTerminal(`Commit initiated. Validating data streams...`, 'indigo-400');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Synchronizing...';
+
+        try {
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': formData.get('_token'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                logToTerminal(`Synchronization complete. Protocol saved.`, 'emerald-400');
+                showToast('Synchronized', 'Case history updated successfully.', 'success');
+                window.protocolActive = false;
+                setTimeout(() => location.reload(), 600);
+            } else {
+                const errData = await response.json();
+                logToTerminal(`Validation failure. Check required fields.`, 'rose-400');
+                showToast('Sync Error', errData.message || 'Validation mismatch', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        } catch (err) {
+            logToTerminal(`Network failure. Mainframe unreachable.`, 'rose-500');
+            showToast('Protocol Error', 'Sync failed', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    });
+    
+    document.getElementById('manualEntryForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const uid = document.getElementById('manual_rfid_uid').value.trim();
         if (uid) {
             submitRFID(uid);
-            closeModal();
+            modal.classList.add('hidden');
+            document.getElementById('manual_rfid_uid').value = '';
         }
     });
 
-    // ============================================
-    // RFID SUBMISSION
-    // ============================================
-    
     function submitRFID(uid) {
-        if (locked || !uid) return;
-
-        locked = true;
-
+        logToTerminal('Transmitting to mainframe...', 'cyan-400');
+        
         fetch("{{ route('admin.attendance.simulate') }}", {
             method: 'POST',
             headers: {
@@ -445,87 +444,114 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(res => res.json())
         .then(res => {
-            showToast(res.message, res.status);
-            if (res.attendance) updateRow(res.attendance);
+            showToast(res.status === 'success' ? 'Authenticated' : 'Protocol Alert', res.message, res.status);
+            logToTerminal(res.message, res.status === 'success' ? 'emerald-400' : (res.status === 'warning' ? 'amber-400' : 'rose-400'));
+            if (res.attendance) {
+                window.attendanceRegistry[res.attendance.id] = res.attendance;
+                updateRow(res.attendance);
+            }
         })
         .catch(err => {
-            showToast('Connection error', 'error');
+            showToast('Sync Error', 'Mainframe connection lost', 'error');
+            logToTerminal('Critical error: Protocol failed', 'rose-500');
             console.error(err);
-        })
-        .finally(() => {
-            locked = false;
-            input.focus();
         });
     }
 
-    // ============================================
-    // UI UPDATES
-    // ============================================
-    
     function updateRow(a) {
         let row = document.getElementById('attendance-' + a.id);
-
         if (!row) {
             row = document.createElement('tr');
             row.id = 'attendance-' + a.id;
-            row.className = 'group';
+            row.className = 'hover:bg-slate-50 transition-colors group animate-fade-in';
             body.prepend(row);
         }
 
         const initial = a.student_name ? a.student_name.charAt(0).toUpperCase() : '?';
-        const statusIcon = a.time_out ? 'fa-check-circle' : 'fa-clock';
-        const statusClass = a.time_out ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700';
-        const statusText = a.time_out ? 'Completed' : 'In Session';
+        const type = a.time_out ? 'success' : 'warning';
+        const label = a.time_out ? 'Validated' : 'Encrypted';
+        const statusBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${type === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'}">
+            <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${label}</span>`;
+
+        const hasNotes = a.notes && a.notes.length > 0;
+        const noteBtnContent = hasNotes 
+            ? `<i class="fa-solid fa-comment-dots text-indigo-500 text-lg hover:scale-110 transition-transform"></i>
+               <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-2 py-1 rounded text-[9px] font-black uppercase whitespace-nowrap opacity-0 group-hover/note:opacity-100 transition-opacity">Read Analysis</span>`
+            : `<i class="fa-solid fa-note-sticky text-slate-300 text-lg hover:text-indigo-500 transition-colors"></i>
+               <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-2 py-1 rounded text-[9px] font-black uppercase whitespace-nowrap opacity-0 group-hover/note:opacity-100 transition-opacity">Add Note</span>`;
 
         row.innerHTML = `
-            <td class="px-8 py-4">
+            <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xs font-black text-indigo-600">
                         ${initial}
                     </div>
-                    <span class="font-semibold text-gray-900">${a.student_name}</span>
+                    <div>
+                        <p class="text-sm font-bold text-slate-900">${a.student_name}</p>
+                        <p class="text-[9px] font-black text-slate-500 uppercase tracking-tighter">${a.student_course ?? 'N/A'}</p>
+                    </div>
                 </div>
             </td>
-            <td class="px-8 py-4">
-                <code class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-mono font-medium">${a.rfid_uid}</code>
+            <td class="px-6 py-4">
+                <code class="text-[10px] bg-slate-100 px-2 py-1 rounded text-cyan-600 font-bold tracking-tighter border border-slate-200">${a.rfid_uid}</code>
             </td>
-            <td class="px-8 py-4">
-                <span class="text-gray-700 font-medium text-sm">${a.time_in ?? '—'}</span>
+            <td class="px-6 py-4">
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-black text-slate-700">${a.time_in ?? '—'}</span>
+                    <span class="text-[9px] font-bold text-slate-500 uppercase">Timestamp Sync</span>
+                </div>
             </td>
-            <td class="px-8 py-4">
-                <span class="text-gray-700 font-medium text-sm">${a.time_out ?? '—'}</span>
+            <td class="px-6 py-4 border-l border-slate-100">
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-black text-slate-700">${a.time_out ?? '—'}</span>
+                    <span class="text-[9px] font-bold text-slate-500 uppercase">${a.time_out ? 'Authenticated' : 'Pending'}</span>
+                </div>
             </td>
-            <td class="px-8 py-4">
-                <span class="status-badge inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full ${statusClass} text-xs">
-                    <i class="fa-solid ${statusIcon}"></i>
-                    ${statusText}
-                </span>
+            <td class="px-6 py-4 text-center">
+                <button 
+                    type="button"
+                    onclick="openNoteModal(${a.id})"
+                    class="note-trigger-${a.id} group/note relative"
+                >
+                    ${noteBtnContent}
+                </button>
             </td>
-            <td class="px-8 py-4">
-                <span class="text-gray-700 font-semibold text-sm">
-                    ${a.duration_minutes ? a.duration_minutes + ' mins' : '—'}
-                </span>
+            <td class="px-6 py-4">
+                ${statusBadge}
             </td>
         `;
     }
 
-    function showToast(msg, status) {
+    function showToast(titleText, msg, type) {
         const t = document.getElementById('toast');
-        t.textContent = msg;
-        
-        const colors = {
-            success: 'bg-gradient-to-r from-green-500 to-green-600',
-            error: 'bg-gradient-to-r from-red-500 to-red-600',
-            info: 'bg-gradient-to-r from-amber-500 to-amber-600'
-        };
-        
-        t.className = `toast fixed bottom-6 right-6 px-6 py-4 rounded-xl text-white font-semibold text-sm shadow-2xl ${colors[status] || colors.info}`;
-        t.classList.remove('hidden');
-        
-        setTimeout(() => t.classList.add('hidden'), 3000);
-    }
+        const icon = document.getElementById('toast-icon');
+        const title = document.getElementById('toast-title');
+        const text = document.getElementById('toast-msg');
+        const glow = document.getElementById('toast-glow');
 
-    maintainFocus();
+        title.textContent = titleText;
+        text.textContent = msg;
+        if (type === 'success') {
+            icon.className = 'w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-100';
+            icon.innerHTML = '<i class="fa-solid fa-shield-check"></i>';
+            title.className = 'text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-0.5';
+            glow.className = 'absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500 shadow-md';
+        } else if (type === 'warning') {
+            icon.className = 'w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600 border border-amber-100';
+            icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            title.textContent = titleText;
+            title.className = 'text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 mb-0.5';
+            glow.className = 'absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500 shadow-md';
+        } else {
+            icon.className = 'w-10 h-10 rounded-xl flex items-center justify-center bg-rose-50 text-rose-600 border border-rose-100';
+            icon.innerHTML = '<i class="fa-solid fa-shield-exclamation"></i>';
+            title.className = 'text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 mb-0.5';
+            glow.className = 'absolute left-0 top-0 bottom-0 w-1.5 bg-rose-500 shadow-md';
+        }
+
+        t.classList.remove('hidden');
+        setTimeout(() => t.classList.add('hidden'), 4000);
+    }
 });
 </script>
 @endsection

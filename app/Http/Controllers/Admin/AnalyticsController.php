@@ -49,6 +49,24 @@ class AnalyticsController extends Controller
         // Weekly comparison
         $weeklyComparison = $this->getWeeklyComparison();
 
+        // Average Duration (placeholder if duration_minutes exists)
+        $averageDuration = round(Attendance::avg('duration_minutes') ?? 0, 1);
+
+        // Peak Utilization (grouped by hour)
+        $peakUtilization = Attendance::selectRaw('HOUR(time_in) as hour, COUNT(*) as count')
+            ->groupBy('hour')
+            ->orderBy('hour')
+            ->get();
+
+        // Wellness Analytics - Professional Academic Insights
+        $retentionVelocity = $this->calculateRetentionVelocity();
+        $wellnessResilience = $this->calculateWellnessResilience();
+        $peakWellnessHours = $this->calculatePeakWellnessHours();
+
+        $studentEngagement = Student::withCount('attendances')
+            ->orderBy('attendances_count', 'desc')
+            ->get();
+
         return view('admin.analytics.index', compact(
             'totalStudents',
             'totalAttendances',
@@ -63,7 +81,13 @@ class AnalyticsController extends Controller
             'topEngagedStudents',
             'atRiskStudents',
             'courseParticipation',
-            'weeklyComparison'
+            'weeklyComparison',
+            'averageDuration',
+            'peakUtilization',
+            'studentEngagement',
+            'retentionVelocity',
+            'wellnessResilience',
+            'peakWellnessHours'
         ));
     }
 
@@ -295,8 +319,8 @@ class AnalyticsController extends Controller
             $daysSinceLastAttendance = $lastAttendance ? 
                 Carbon::parse($lastAttendance->time_in)->diffInDays(now()) : 999;
             
-            // At risk if: score < 30 OR no attendance in 30+ days OR never attended
-            return $score < 30 || $daysSinceLastAttendance > 30 || $student->attendances_count == 0;
+            // At risk if: explicit flag OR score < 30 OR no attendance in 30+ days OR never attended
+            return $student->is_at_risk || $score < 30 || $daysSinceLastAttendance > 30 || $student->attendances_count == 0;
         })->map(function($student) {
             $lastAttendance = $student->attendances()->latest('time_in')->first();
             $daysSince = $lastAttendance ? 
@@ -313,7 +337,12 @@ class AnalyticsController extends Controller
                 'risk_level' => $this->getRiskLevel($this->calculateEngagementScore($student), $daysSince)
             ];
         })->sortByDesc(function($student) {
-            return $student['days_since_last_attendance'] ?? 999;
+            // Prioritize explicitly flagged students, then by inactivity days
+            $basePriority = 0;
+            $s = Student::find($student['id']);
+            if ($s && $s->is_at_risk) $basePriority = 5000;
+            
+            return $basePriority + ($student['days_since_last_attendance'] ?? 999);
         })->values();
     }
 
@@ -335,6 +364,7 @@ class AnalyticsController extends Controller
             ->map(function($item) {
                 return [
                     'course' => $item->course,
+                    'count' => $item->total_attendance, // Compatibility with view
                     'unique_students' => $item->unique_students,
                     'total_attendance' => $item->total_attendance,
                     'avg_per_student' => $item->unique_students > 0 ? round($item->total_attendance / $item->unique_students, 1) : 0
@@ -365,12 +395,66 @@ class AnalyticsController extends Controller
         ];
     }
 
-    // Export analytics data
-    public function export(Request $request)
+    // 7. Retention Velocity (Average days between visits)
+    private function calculateRetentionVelocity()
     {
-        $type = $request->get('type', 'pdf');
-        
-        // For now, redirect back - we'll implement export later
-        return redirect()->back()->with('info', 'Export feature coming soon!');
+        $students = Student::with('attendances')->has('attendances', '>', 1)->get();
+        $totalIntervals = 0;
+        $totalDays = 0;
+
+        foreach ($students as $student) {
+            $logs = $student->attendances->sortBy('time_in')->values();
+            for ($i = 0; $i < count($logs) - 1; $i++) {
+                $totalDays += $logs[$i]->time_in->diffInDays($logs[$i + 1]->time_in);
+                $totalIntervals++;
+            }
+        }
+
+        return $totalIntervals > 0 ? round($totalDays / $totalIntervals, 1) : 0;
+    }
+
+    // 8. Wellness Resilience (Based on session outcomes and consistency)
+    private function calculateWellnessResilience()
+    {
+        $totalAttendees = Attendance::distinct('student_id')->count();
+        if ($totalAttendees == 0) return 0;
+
+        $lowSeverityCount = Attendance::where('severity', 'low')->count();
+        $totalCount = Attendance::count();
+
+        return round(($lowSeverityCount / $totalCount) * 100, 1);
+    }
+
+    // 9. Peak Wellness Hours (Hours with highest positive engagement)
+    private function calculatePeakWellnessHours()
+    {
+        return Attendance::selectRaw('HOUR(time_in) as hour, COUNT(*) as count')
+            ->where('severity', 'low')
+            ->groupBy('hour')
+            ->orderBy('count', 'desc')
+            ->first();
+    }
+
+    // Export analytics data
+    public function export()
+    {
+        $logs = Attendance::with('student')->latest()->get();
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.reports.participation', compact('logs'));
+        return $pdf->download('participation-report-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    public function sendFollowUp(Request $request, Student $student)
+    {
+        // Update database tracking
+        $student->update([
+            'last_follow_up_at' => now(),
+            'is_at_risk' => false, // Reset at-risk status after intervention
+            'risk_level' => 'low'
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Medical-grade follow-up protocol initiated for {$student->name}. Intervention logged and risk status reset."
+        ]);
     }
 }

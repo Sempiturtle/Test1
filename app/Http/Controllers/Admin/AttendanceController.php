@@ -11,17 +11,34 @@ use Carbon\Carbon;
 class AttendanceController extends Controller
 {
     // Show Attendance Logs page
-   public function index()
-{
-    $logs = Attendance::with('student')
-        ->latest('time_in')
-        ->take(20)
-        ->get();
+    public function index(Request $request)
+    {
+        $query = Attendance::with('student');
 
-    $students = Student::orderBy('name')->get();
+        // Professional Academic Filtering
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('student', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('student_id', 'like', "%{$search}%");
+            });
+        }
 
-    return view('admin.attendance.index', compact('logs', 'students'));
-}
+        if ($request->filled('course')) {
+            $query->whereHas('student', function($q) use ($request) {
+                $q->where('course', $request->course);
+            });
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('time_in', $request->date);
+        }
+
+        $logs = $query->latest('time_in')->paginate(20)->withQueryString();
+        $students = Student::orderBy('name')->get();
+
+        return view('admin.attendance.index', compact('logs', 'students'));
+    }
 
     // Handle RFID Tap
     public function simulate(Request $request)
@@ -39,11 +56,19 @@ class AttendanceController extends Controller
             ]);
         }
 
-        $today = now('Asia/Manila')->toDateString();
+        // Check for daily completion (block third tap)
+        if ($this->checkDailyLimit($student->id)) {
+            return response()->json([
+                'status' => 'info',
+                'message' => 'Daily protocol complete. Access locked.'
+            ]);
+        }
 
-        // Get today's attendance for this student
+        // Find the most recent session for this student that hasn't timed out yet
+        // We look for any session within the last 24 hours to be safe, regardless of timezone weirdness
         $attendance = Attendance::where('student_id', $student->id)
-            ->whereDate('time_in', $today)
+            ->whereNull('time_out')
+            ->where('time_in', '>', now('Asia/Manila')->subHours(24))
             ->latest()
             ->first();
 
@@ -53,6 +78,7 @@ class AttendanceController extends Controller
                 'student_id' => $student->id,
                 'rfid_uid' => $request->rfid_uid,
                 'time_in' => now('Asia/Manila'),
+                'status' => 'present' // Ensure status is set
             ]);
 
             return response()->json([
@@ -62,28 +88,60 @@ class AttendanceController extends Controller
             ]);
         }
 
-        if (!$attendance->time_out) {
-            // SECOND TAP → TIME OUT
-            $time_out = now('Asia/Manila');
-            $duration = $attendance->time_in->diffInMinutes($time_out);
-
-            $attendance->update([
-                'time_out' => $time_out,
-                'duration_minutes' => $duration,
-            ]);
-
+        // IF RECORD EXISTS AND NO TIME OUT → PROCESS TIME OUT
+        // Anti-double tap protection (1 minute cooldown)
+        if ($attendance->time_in->diffInMinutes(now('Asia/Manila')) < 1) {
             return response()->json([
-                'status' => 'success',
-                'message' => 'Time Out recorded',
-                'attendance' => $this->formatAttendance($attendance, $student)
+                'status' => 'warning',
+                'message' => 'Cooldown active. Please wait 1 minute.'
             ]);
         }
 
-        // Already tapped twice
-        return response()->json([
-            'status' => 'info',
-            'message' => 'Attendance already completed today'
+        // SECOND TAP → TIME OUT
+        $time_out = now('Asia/Manila');
+        $duration = $attendance->time_in->diffInMinutes($time_out);
+
+        $attendance->update([
+            'time_out' => $time_out,
+            'duration_minutes' => $duration,
         ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Time Out recorded',
+            'attendance' => $this->formatAttendance($attendance->fresh(), $student)
+        ]);
+    }
+
+    // Check if student already finished for the day
+    private function checkDailyLimit($studentId)
+    {
+        $today = now('Asia/Manila')->toDateString();
+        return Attendance::where('student_id', $studentId)
+            ->whereDate('time_in', $today)
+            ->whereNotNull('time_out')
+            ->exists();
+    }
+
+    public function updateNote(Request $request, Attendance $attendance)
+    {
+        $request->validate([
+            'notes' => 'nullable|string',
+            'category' => 'nullable|string',
+            'severity' => 'required|in:low,medium,high'
+        ]);
+
+        $attendance->update($request->only('notes', 'category', 'severity'));
+
+        // Automated Risk Trigger
+        if ($request->severity === 'high') {
+            $attendance->student->update([
+                'is_at_risk' => true,
+                'risk_level' => 'high'
+            ]);
+        }
+
+        return response()->json(['success' => true]);
     }
 
     // Format attendance for JSON response
@@ -99,7 +157,10 @@ class AttendanceController extends Controller
             'time_out' => $attendance->time_out
                 ? $attendance->time_out->timezone('Asia/Manila')->format('h:i:s A')
                 : null,
-            'duration_minutes' => $attendance->duration_minutes
+            'duration_minutes' => $attendance->duration_minutes,
+            'notes' => $attendance->notes,
+            'category' => $attendance->category,
+            'severity' => $attendance->severity,
         ];
     }
 }
