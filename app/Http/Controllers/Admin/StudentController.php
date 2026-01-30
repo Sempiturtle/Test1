@@ -8,9 +8,30 @@ use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
-    public function index()
+    public function show(Student $student)
     {
-        $students = Student::latest()->paginate(15);
+        $student->load(['attendances.student', 'cases.user']); // Eager load
+        return view('admin.students.show', compact('student'));
+    }
+
+    public function index(Request $request)
+    {
+        $query = Student::latest();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('student_id', 'like', "%{$search}%")
+                  ->orWhere('course', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('course')) {
+            $query->where('course', $request->course);
+        }
+
+        $students = $query->paginate(15)->withQueryString();
         return view('admin.students', compact('students'));
     }
 
@@ -23,7 +44,14 @@ class StudentController extends Controller
             'rfid_uid' => 'required|unique:students',
         ]);
 
-        Student::create($request->all());
+        $student = Student::create($request->all());
+
+        \App\Models\AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'CREATE_STUDENT',
+            'details' => "Registered student: {$student->name} ({$student->student_id})",
+            'ip_address' => request()->ip()
+        ]);
 
         return back()->with('success', 'Student registered successfully');
     }
@@ -45,6 +73,13 @@ class StudentController extends Controller
             'rfid_uid' => $request->rfid_uid,
         ]);
 
+        \App\Models\AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'UPDATE_STUDENT',
+            'details' => "Updated student: {$student->name} ({$student->student_id})",
+            'ip_address' => request()->ip()
+        ]);
+
         return response()->json([
             'success' => true,
             'student' => $student
@@ -56,8 +91,17 @@ class StudentController extends Controller
     {
         $student->delete();
 
+        \App\Models\AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'DELETE_STUDENT',
+            'details' => "Deleted student: {$student->name} ({$student->student_id})",
+            'ip_address' => request()->ip()
+        ]);
+
         return response()->json([
             'success' => true
         ]);
     }
+
+
 }

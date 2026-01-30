@@ -142,24 +142,35 @@
                 @endif
             </a>
 
-            <div class="sidebar-text h-px bg-slate-200 my-4 mx-3"></div>
-
-            <div class="sidebar-text px-3 mb-3">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">System Preferences</span>
-            </div>
-
-            <a href="{{ route('admin.calendar.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group {{ request()->routeIs('admin.calendar.*') ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}">
-                <i class="fa-solid fa-calendar-alt text-base {{ request()->routeIs('admin.calendar.*') ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500' }}"></i>
+            <a href="{{ route('admin.calendar.index') }}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group {{ request()->routeIs('admin.calendar.*') ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}">
+                <i class="fa-solid fa-calendar-days text-base {{ request()->routeIs('admin.calendar.*') ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500' }}"></i>
                 <span class="sidebar-text font-semibold text-sm">Calendar</span>
                 @if(request()->routeIs('admin.calendar.*'))
                     <div class="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-600"></div>
                 @endif
             </a>
 
-            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group">
-                <i class="fa-solid fa-sliders text-base text-slate-400 group-hover:text-slate-600"></i>
-                <span class="sidebar-text font-semibold text-sm">Settings</span>
+            <div class="sidebar-text h-px bg-slate-200 my-4 mx-3"></div>
+
+            <div class="sidebar-text px-3 mb-3">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">System Preferences</span>
+            </div>
+
+            <a href="{{ route('admin.audit.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group {{ request()->routeIs('admin.audit.*') ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}">
+                <i class="fa-solid fa-shield-halved text-base {{ request()->routeIs('admin.audit.*') ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500' }}"></i>
+                <span class="sidebar-text font-semibold text-sm">Audit Trail</span>
+                @if(request()->routeIs('admin.audit.*'))
+                    <div class="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-600"></div>
+                @endif
             </a>
+                <!-- SETTINGS -->
+                <a href="{{ route('admin.programs.index') }}" class="flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 {{ request()->routeIs('admin.programs.*') ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 translate-x-1' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center {{ request()->routeIs('admin.programs.*') ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-white transition-colors' }}">
+                        <i class="fa-solid fa-gear"></i>
+                    </div>
+                    <span class="font-bold uppercase tracking-widest text-[10px]">Settings</span>
+                </a>
         </nav>
 
         <!-- Sidebar Footer -->

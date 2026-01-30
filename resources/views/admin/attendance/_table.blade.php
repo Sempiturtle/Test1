@@ -14,7 +14,7 @@
             <thead class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
                 <tr>
                     <th class="px-6 py-4 text-left">Student</th>
-                    <th class="px-6 py-4 text-left">RFID</th>
+
                     <th class="px-6 py-4 text-left">Time In</th>
                     <th class="px-6 py-4 text-left">Time Out</th>
                     <th class="px-6 py-4 text-left">Date</th>
@@ -28,9 +28,7 @@
                             {{ $log->student->name }}
                         </td>
 
-                        <td class="px-6 py-4 font-mono text-gray-700">
-                            {{ $log->rfid_uid }}
-                        </td>
+
 
                         <td class="px-6 py-4 text-gray-700">
                             {{ $log->time_in ? $log->time_in->format('h:i A') : '—' }}

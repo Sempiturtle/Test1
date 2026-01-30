@@ -14,28 +14,30 @@
 <div class="space-y-8">
     
     <!-- SEARCH & FILTERS -->
-    <div class="flex items-center justify-between">
+    <!-- SEARCH & FILTERS -->
+    <form method="GET" class="flex items-center justify-between">
         <div class="relative group">
             <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-            <input type="text" placeholder="Search by name, ID or course..." class="bg-white border border-slate-200 rounded-2xl pl-12 pr-6 py-3 text-sm text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all w-80 lg:w-96 shadow-sm">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name, ID or course..." class="bg-white border border-slate-200 rounded-2xl pl-12 pr-6 py-3 text-sm text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all w-80 lg:w-96 shadow-sm">
         </div>
         
         <div class="flex items-center gap-4">
-            <select class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-bold uppercase tracking-wider cursor-pointer focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500/50 outline-none">
+            <select name="course" onchange="this.form.submit()" class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-bold uppercase tracking-wider cursor-pointer focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500/50 outline-none">
                 <option value="">All Courses</option>
-                <option value="BSCS">BSCS - Computer Science</option>
-                <option value="BSOA">BSOA - Office Administration</option>
-                <option value="BSCRIM">BSCRIM - Criminology</option>
-                <option value="BSTM">BSTM - Tourism Management</option>
-                <option value="BSA">BSA - Accountancy</option>
+                <option value="BSCS" {{ request('course') == 'BSCS' ? 'selected' : '' }}>BSCS - Computer Science</option>
+                <option value="BSOA" {{ request('course') == 'BSOA' ? 'selected' : '' }}>BSOA - Office Administration</option>
+                <option value="BSCRIM" {{ request('course') == 'BSCRIM' ? 'selected' : '' }}>BSCRIM - Criminology</option>
+                <option value="BSTM" {{ request('course') == 'BSTM' ? 'selected' : '' }}>BSTM - Tourism Management</option>
+                <option value="BSA" {{ request('course') == 'BSA' ? 'selected' : '' }}>BSA - Accountancy</option>
+                <option value="SHS" {{ request('course') == 'SHS' ? 'selected' : '' }}>Senior High School</option>
             </select>
-            <button class="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-300 transition-all shadow-sm">
-                <i class="fa-solid fa-arrow-down-wide-short"></i>
+            <button type="submit" class="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-300 transition-all shadow-sm">
+                <i class="fa-solid fa-arrow-right"></i>
             </button>
         </div>
-    </div>
+    </form>
 
-    <x-glass-table :headers="['Student Profile', 'RFID Tag', 'Academic Unit', 'Risk Status', 'Join Date', 'Actions']">
+    <x-glass-table :headers="['Student Profile', 'Academic Unit', 'Risk Status', 'Join Date', 'Actions']">
         @foreach($students as $student)
             <tr class="hover:bg-slate-50 transition-colors group">
                 <td class="px-6 py-4">
@@ -49,11 +51,7 @@
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4">
-                    <code class="text-[10px] bg-slate-100 px-2.5 py-1 rounded-lg text-cyan-700 font-bold tracking-widest border border-slate-200">
-                        {{ $student->rfid_uid }}
-                    </code>
-                </td>
+
                 <td class="px-6 py-4">
                     <span class="text-xs font-bold text-slate-600 uppercase">{{ $student->course }}</span>
                 </td>
@@ -75,15 +73,23 @@
                 </td>
                 <td class="px-6 py-4 text-center">
                     <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                        <!-- VIEW PROFILE -->
+                        <a href="{{ route('admin.students.show', $student->id) }}" 
+                           class="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm active:scale-95 group/view">
+                            <i class="fa-solid fa-eye text-[10px]"></i>
+                            <span class="text-[9px] font-black uppercase tracking-tighter hidden group-hover/view:block">View</span>
+                        </a>
+
                         <!-- EDIT PROTOCOL -->
                         <button 
                             type="button"
-                            data-student='@json($student)'
-                            onclick="protocol_ModifyStudent(this)"
+                            onclick='protocol_ModifyStudent(@json($student))'
                             class="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm active:scale-95 group/edit">
                             <i class="fa-solid fa-pen-to-square text-[10px]"></i>
                             <span class="text-[9px] font-black uppercase tracking-tighter hidden group-hover/edit:block">Edit</span>
                         </button>
+
+
 
                         <!-- TERMINATION PROTOCOL -->
                         <button 
@@ -299,13 +305,11 @@
      * @protocol_ModifyStudent
      * Populates and opens the edit terminal
      */
-    function protocol_ModifyStudent(btn) {
+    function protocol_ModifyStudent(student) {
         console.log('PROTOCOL INITIATED: Modify Student');
         try {
-            const studentData = btn.getAttribute('data-student');
-            if (!studentData) throw new Error('Data payload missing');
+            if (!student) throw new Error('Data payload missing');
             
-            const student = JSON.parse(studentData);
             console.log(`ENTITY IDENTIFIED: ${student.name} (ID: ${student.id})`);
 
             const modal = document.getElementById('editStudentModal');

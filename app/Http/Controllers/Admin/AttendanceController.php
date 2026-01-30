@@ -141,6 +141,13 @@ class AttendanceController extends Controller
             ]);
         }
 
+        \App\Models\AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'ADD_CASE_NOTE',
+            'details' => "Added note for: {$attendance->student->name} (Severity: {$request->severity})",
+            'ip_address' => request()->ip()
+        ]);
+
         return response()->json(['success' => true]);
     }
 

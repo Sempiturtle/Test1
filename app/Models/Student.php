@@ -31,6 +31,11 @@ class Student extends Model
         return $this->hasMany(Attendance::class);
     }
 
+    public function cases()
+    {
+        return $this->hasMany(StudentCase::class);
+    }
+
     // Analytics helper methods
     public function getTotalAttendanceCount()
     {

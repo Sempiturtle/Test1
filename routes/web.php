@@ -7,6 +7,9 @@ use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\CalendarController;
+use App\Http\Controllers\Admin\AuditController;
+use App\Http\Controllers\Admin\CaseController;
+use App\Http\Controllers\Admin\ProgramController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +20,9 @@ use App\Http\Controllers\Admin\CalendarController;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// PUBLIC ATTENDANCE TAP
+Route::post('/attendance/tap', [AttendanceController::class, 'simulate'])->name('attendance.tap');
 
 /*
 |--------------------------------------------------------------------------
@@ -53,18 +59,21 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
-    // RFID Tap (real-time)
-    Route::post('/attendance/simulate', [AttendanceController::class, 'simulate'])->name('attendance.simulate');
-
     // Students
     Route::get('/students', [StudentController::class, 'index'])->name('students.index');
     Route::post('/students', [StudentController::class, 'store'])->name('students.store');
+    Route::get('/students/{student}', [StudentController::class, 'show'])->name('students.show');
+
+    // Cases
+    Route::post('/cases', [CaseController::class, 'store'])->name('cases.store');
+    Route::put('/cases/{case}', [CaseController::class, 'update'])->name('cases.update');
 
     Route::put('/students/{student}', [StudentController::class, 'update'])
         ->name('students.update');
 
     Route::delete('/students/{student}', [StudentController::class, 'destroy'])
         ->name('students.destroy');
+
 
     // Attendance Logs
     Route::get('/attendance/logs', [AttendanceController::class, 'index'])->name('attendance.logs');
@@ -76,8 +85,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
     Route::post('/analytics/follow-up/{student}', [AnalyticsController::class, 'sendFollowUp'])->name('analytics.follow-up');
 
-    // ========== CALENDAR ROUTES ==========
+    // ========== AUDIT TRAIL ==========
+    Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
+
+    // ========== CALENDAR & APPOINTMENTS ==========
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
     Route::get('/calendar/events', [CalendarController::class, 'events'])->name('calendar.events');
+    Route::post('/appointments', [CalendarController::class, 'store'])->name('appointments.store');
 
+    // Programs (Settings)
+    Route::resource('programs', ProgramController::class);
+    Route::post('programs/{program}/toggle-status', [ProgramController::class, 'toggleStatus'])->name('programs.toggle-status');
 });

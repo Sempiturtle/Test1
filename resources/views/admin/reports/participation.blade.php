@@ -43,9 +43,9 @@
         <tbody>
             @foreach($logs as $log)
             <tr>
-                <td>{{ $log->student->student_id }}</td>
-                <td style="font-weight: bold;">{{ $log->student->name }}</td>
-                <td>{{ $log->student->course }}</td>
+                <td>{{ $log->student->student_id ?? 'N/A' }}</td>
+                <td style="font-weight: bold;">{{ $log->student->name ?? 'Unknown Entity' }}</td>
+                <td>{{ $log->student->course ?? 'N/A' }}</td>
                 <td>{{ $log->time_in ? $log->time_in->timezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</td>
                 <td>{{ $log->category ?? 'Routine' }}</td>
                 <td>

@@ -8,6 +8,7 @@ use App\Models\Student;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AnalyticsController extends Controller
 {
@@ -438,8 +439,18 @@ class AnalyticsController extends Controller
     // Export analytics data
     public function export()
     {
+
+
+        // Log the export action
+        \App\Models\AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'EXPORT_ANALYTICS',
+            'details' => 'Generated Participation Report PDF',
+            'ip_address' => request()->ip()
+        ]);
+
         $logs = Attendance::with('student')->latest()->get();
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.reports.participation', compact('logs'));
+        $pdf = Pdf::loadView('admin.reports.participation', compact('logs'));
         return $pdf->download('participation-report-' . now()->format('Y-m-d') . '.pdf');
     }
 

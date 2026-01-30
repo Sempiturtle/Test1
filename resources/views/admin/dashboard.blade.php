@@ -3,10 +3,10 @@
 
 @section('actions')
 <div class="flex items-center gap-3">
-    <button class="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-indigo-600 transition-all flex items-center gap-2 shadow-sm">
+    <a href="{{ route('admin.analytics.export') }}" class="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-indigo-600 transition-all flex items-center gap-2 shadow-sm">
         <i class="fa-solid fa-file-export text-[10px]"></i>
         Export Analytics
-    </button>
+    </a>
     <a href="{{ route('admin.attendance.logs') }}" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2">
         <i class="fa-solid fa-calendar-check text-[10px]"></i>
         Attendance Hub

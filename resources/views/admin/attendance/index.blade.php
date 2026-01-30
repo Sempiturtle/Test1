@@ -113,7 +113,7 @@
             </div>
 
             <script>window.attendanceRegistry = {};</script>
-            <x-glass-table :headers="['Subject', 'Protocol ID', 'Clock In', 'Clock Out', 'Case Note', 'State']">
+            <x-glass-table :headers="['Subject', 'Clock In', 'Clock Out', 'Case Note', 'State']">
                 <tbody id="attendanceBody">
                 @foreach ($logs as $log)
                     <tr id="attendance-{{ $log->id }}" class="hover:bg-slate-50 transition-colors group">
@@ -128,11 +128,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <code class="text-[10px] bg-slate-100 px-2 py-1 rounded text-cyan-600 font-bold tracking-tighter border border-slate-200">
-                                {{ $log->rfid_uid }}
-                            </code>
-                        </td>
+
                         <td class="px-6 py-4">
                             <div class="flex flex-col">
                                 <span class="text-[11px] font-black text-slate-700">
@@ -433,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function submitRFID(uid) {
         logToTerminal('Transmitting to mainframe...', 'cyan-400');
         
-        fetch("{{ route('admin.attendance.simulate') }}", {
+        fetch("{{ route('attendance.tap') }}", {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -492,9 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             </td>
-            <td class="px-6 py-4">
-                <code class="text-[10px] bg-slate-100 px-2 py-1 rounded text-cyan-600 font-bold tracking-tighter border border-slate-200">${a.rfid_uid}</code>
-            </td>
+
             <td class="px-6 py-4">
                 <div class="flex flex-col">
                     <span class="text-[11px] font-black text-slate-700">${a.time_in ?? '—'}</span>
